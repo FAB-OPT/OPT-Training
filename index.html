@@ -2037,6 +2037,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const fsdb = firebase.firestore();
+fsdb.enablePersistence().catch(err => console.warn("Offline persistence:", err.code));
 
 async function loadFromFirestore() {
   try {
