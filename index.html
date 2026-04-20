@@ -2055,6 +2055,32 @@ async function loadFromFirestore() {
     DB.quizResults = quizSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch(err) {
     console.error('Firebase load error:', err);
+    document.getElementById('loading-screen').innerHTML = `
+      <div style="text-align:center;padding:32px;font-family:'Sarabun',sans-serif">
+        <div style="font-size:40px;margin-bottom:16px">⚠️</div>
+        <div style="font-size:18px;font-weight:700;color:#C0392B;margin-bottom:8px">เชื่อมต่อ Firebase ไม่ได้</div>
+        <div style="font-size:13px;color:#4A5568;margin-bottom:4px">${err.message}</div>
+        <button onclick="location.reload()" style="margin-top:20px;padding:10px 24px;background:#E85A0A;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:'Sarabun',sans-serif">ลองใหม่</button>
+      </div>`;
+    throw err;
+  }
+}
+
+async function fsSave(collection, id, data) {
+  try {
+    await fsdb.collection(collection).doc(id).set(data);
+  } catch(err) {
+    console.error('Firebase save error:', err);
+    notify('บันทึกข้อมูลไม่สำเร็จ: ' + err.message, 'error');
+  }
+}
+
+async function fsDel(collection, id) {
+  try {
+    await fsdb.collection(collection).doc(id).delete();
+  } catch(err) {
+    console.error('Firebase delete error:', err);
+    notify('ลบข้อมูลไม่สำเร็จ: ' + err.message, 'error');
   }
 }
 
@@ -2431,7 +2457,7 @@ function openAddEmployee() {
     const bid = getBranchId();
     if(!DB.employees[bid]) DB.employees[bid]=[];
     const _ne={id:genId('E'),branchId:bid,name,position:pos,startDate:start,status};
-    DB.employees[bid].push(_ne); fsdb.collection('employees').doc(_ne.id).set(_ne);
+    DB.employees[bid].push(_ne); fsSave('employees', _ne.id, _ne);
     closeModal(); showPage('employees'); notify('เพิ่มพนักงานสำเร็จ');
   });
 }
@@ -2560,7 +2586,7 @@ function openAddTraining() {
     const traineeIds = getSelectedEmpIds();
     if(!date||!trainer||!moduleId||!subtopics.length||!traineeIds.length){notify('กรุณากรอกข้อมูลให้ครบ','error');return;}
     const _nt={id:genId('T'),branchId:bid,date,moduleId,subtopics,traineeIds,trainerName:trainer,eval:null};
-    DB.trainings.push(_nt); fsdb.collection('trainings').doc(_nt.id).set(_nt);
+    DB.trainings.push(_nt); fsSave('trainings', _nt.id, _nt);
     closeModal(); showPage('trainings'); notify('บันทึกการสอนงานสำเร็จ');
   });
 
@@ -2875,7 +2901,7 @@ function openEvalModal(trainingId) {
     if(!selectedEvalMethod){notify('กรุณาเลือกวิธีการประเมิน','error');return;}
     if(!selectedEvalResult){notify('กรุณาเลือกผลการประเมิน','error');return;}
     t.eval = {method:selectedEvalMethod,result:selectedEvalResult,evalDate:new Date().toISOString().split('T')[0],note:document.getElementById('eval-note').value};
-    fsdb.collection('trainings').doc(t.id).set(t);
+    fsSave('trainings', t.id, t);
     closeModal(); showPage('evaluations'); notify('บันทึกผลการประเมินสำเร็จ');
   }, 'บันทึกผล');
 }
@@ -2913,7 +2939,7 @@ function openQuiz(trainingId) {
     const pct = Math.round(score/questions.length*100);
     const passed = pct >= 80;
     const _qr={trainingId, score, total:questions.length, pct, date:new Date().toISOString()};
-    DB.quizResults.push(_qr); fsdb.collection('quizResults').add(_qr);
+    DB.quizResults.push(_qr); fsdb.collection('quizResults').add(_qr).catch(err=>notify('บันทึกไม่สำเร็จ: '+err.message,'error'));
     closeModal();
     showModal('ผลการสอบ', `
       <div style="text-align:center;padding:24px 0">
@@ -3145,8 +3171,8 @@ function openDeleteBranch(bid) {
     delete BRANCH_MASTER[bid];
     delete DB.employees[bid];
     DB.trainings = DB.trainings.filter(t => t.branchId !== bid);
-    _delEmps.forEach(e => fsdb.collection('employees').doc(e.id).delete());
-    _delTrains.forEach(t => fsdb.collection('trainings').doc(t.id).delete());
+    _delEmps.forEach(e => fsDel('employees', e.id));
+    _delTrains.forEach(t => fsDel('trainings', t.id));
     closeModal();
     showPage('admin-branches');
     notify('ลบสาขา ' + bid + ' สำเร็จ');
@@ -3188,7 +3214,7 @@ function confirmDeleteEmp(empId, bid) {
     if(DB.employees[bid]) {
       DB.employees[bid] = DB.employees[bid].filter(e=>e.id!==empId);
     }
-    fsdb.collection('employees').doc(empId).delete();
+    fsDel('employees', empId);
     notify('ลบพนักงานสำเร็จ');
     closeModal();
     setTimeout(()=>adminViewBranch(bid), 100);
@@ -3198,7 +3224,7 @@ function confirmDeleteEmp(empId, bid) {
 function confirmDeleteTraining(tId, bid) {
   if(confirm('ยืนยันการลบบันทึกการสอนงานนี้?')) {
     DB.trainings = DB.trainings.filter(t=>t.id!==tId);
-    fsdb.collection('trainings').doc(tId).delete();
+    fsDel('trainings', tId);
     notify('ลบบันทึกการสอนงานสำเร็จ');
     closeModal();
     setTimeout(()=>adminViewBranch(bid), 100);
@@ -3237,7 +3263,7 @@ function adminAddEmpToBranch(bid) {
     if(!name||!pos||!start){notify('กรุณากรอกข้อมูลให้ครบ','error');return;}
     if(!DB.employees[bid]) DB.employees[bid]=[];
     const _ne2={id:genId('E'),branchId:bid,name,position:pos,startDate:start,status};
-    DB.employees[bid].push(_ne2); fsdb.collection('employees').doc(_ne2.id).set(_ne2);
+    DB.employees[bid].push(_ne2); fsSave('employees', _ne2.id, _ne2);
     notify('เพิ่มพนักงานสำเร็จ');
     closeModal();
     setTimeout(()=>adminViewBranch(bid), 100);
@@ -3274,7 +3300,7 @@ function adminEditEmp(empId, bid) {
     e.position=document.getElementById('emp-pos').value.trim();
     e.startDate=document.getElementById('emp-start').value;
     e.status=document.getElementById('emp-status').value;
-    fsdb.collection('employees').doc(e.id).set({...e});
+    fsSave('employees', e.id, {...e});
     notify('อัปเดตข้อมูลสำเร็จ');
     closeModal();
     setTimeout(()=>adminViewBranch(bid), 100);
@@ -3421,7 +3447,7 @@ function adminAddEmpGlobal() {
     if(!bid||!name||!pos||!start){notify('กรุณากรอกข้อมูลให้ครบ','error');return;}
     if(!DB.employees[bid]) DB.employees[bid]=[];
     const _ne3={id:genId('E'),branchId:bid,name,position:pos,startDate:start,status};
-    DB.employees[bid].push(_ne3); fsdb.collection('employees').doc(_ne3.id).set(_ne3);
+    DB.employees[bid].push(_ne3); fsSave('employees', _ne3.id, _ne3);
     closeModal(); showPage('admin-employees'); notify('เพิ่มพนักงานสำเร็จ');
   });
 }
@@ -3469,7 +3495,7 @@ function adminEditEmpGlobal(empId) {
     e.position=document.getElementById('emp-pos').value.trim();
     e.startDate=document.getElementById('emp-start').value;
     e.status=document.getElementById('emp-status').value;
-    fsdb.collection('employees').doc(e.id).set({...e});
+    fsSave('employees', e.id, {...e});
     closeModal(); showPage('admin-employees'); notify('อัปเดตข้อมูลสำเร็จ');
   });
 }
@@ -3477,7 +3503,7 @@ function adminEditEmpGlobal(empId) {
 function adminDeleteEmpGlobal(empId, bid) {
   if(!confirm('ยืนยันการลบพนักงานนี้? ข้อมูลจะหายถาวร')) return;
   if(DB.employees[bid]) DB.employees[bid] = DB.employees[bid].filter(e=>e.id!==empId);
-  fsdb.collection('employees').doc(empId).delete();
+  fsDel('employees', empId);
   showPage('admin-employees'); notify('ลบพนักงานสำเร็จ');
 }
 
@@ -3666,13 +3692,13 @@ function doImportExcel() {
       existing.status = st;
       if(empCode) existing.empCode = empCode;
       if(sd && sd !== today) existing.startDate = sd;
-      fsdb.collection('employees').doc(existing.id).set({...existing});
+      fsSave('employees', existing.id, {...existing});
       updated++;
     } else {
       const newEmp = {id:genId('E'), branchId:bid, name, position:pos||'พนักงาน', startDate:sd, status:st};
       if(empCode) newEmp.empCode = empCode;
       DB.employees[bid].push(newEmp);
-      fsdb.collection('employees').doc(newEmp.id).set(newEmp);
+      fsSave('employees', newEmp.id, newEmp);
       added++;
     }
   });
