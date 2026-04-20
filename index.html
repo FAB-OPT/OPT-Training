@@ -2031,9 +2031,12 @@ async function gsLoad() {
     const data = await resp.json();
     DB.employees = {};
     (data.employees || []).forEach(e => {
-      if (!e || !e.branchId) return;
-      if (!DB.employees[e.branchId]) DB.employees[e.branchId] = [];
-      DB.employees[e.branchId].push(e);
+      if (!e) return;
+      const bid = String(e.branchId || '').trim();
+      if (!bid) return;
+      e.branchId = bid;
+      if (!DB.employees[bid]) DB.employees[bid] = [];
+      DB.employees[bid].push(e);
     });
     const parseJSON = (v, fb) => { try { return typeof v === 'string' ? JSON.parse(v) : v; } catch(_) { return fb; } };
     DB.trainings = (data.trainings || []).map(t => {
