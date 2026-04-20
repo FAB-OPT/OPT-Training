@@ -188,6 +188,9 @@
     font-size: 13px; font-weight: 600; transition: all 0.2s;
   }
   .btn-logout:hover { background: rgba(255,255,255,0.15); color: white; }
+  .btn-sync { width:100%; padding:9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.55); border-radius:6px; cursor:pointer; font-family:'Sarabun',sans-serif; font-size:12px; font-weight:600; transition:all 0.2s; margin-bottom:6px; }
+  .btn-sync:hover { background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); }
+  .btn-sync.syncing { opacity:0.6; cursor:not-allowed; }
   .main { margin-left: 248px; padding: 24px 28px; min-height: 100vh; }
 
   /* ==================== PAGE ==================== */
@@ -487,6 +490,7 @@
     </div>
     <div class="nav" id="sidebar-nav"></div>
     <div class="sidebar-footer">
+      <button class="btn-sync" id="sync-btn" onclick="syncData()">⟳ ซิงค์ข้อมูลจาก Sheets</button>
       <button class="btn-logout" onclick="logout()">↩ ออกจากระบบ</button>
     </div>
   </nav>
@@ -2045,6 +2049,18 @@ async function gsLoad() {
   }
 }
 
+async function syncData() {
+  const btn = document.getElementById('sync-btn');
+  if (!btn) return;
+  btn.classList.add('syncing');
+  btn.textContent = '⟳ กำลังซิงค์...';
+  await gsLoad();
+  if (currentUser) showPage(currentPage);
+  btn.classList.remove('syncing');
+  btn.textContent = '⟳ ซิงค์ข้อมูลจาก Sheets';
+  notify('ซิงค์ข้อมูลสำเร็จ');
+}
+
 function gsPost(payload) {
   fetch(GS_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
     .catch(err => notify('ระบบไม่ตอบสนอง: ' + err.message, 'error'));
@@ -2261,6 +2277,7 @@ function buildAdminNav() {
 }
 
 function showPage(page) {
+  currentPage = page;
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const navEl = document.getElementById(`nav-${page}`);
   if (navEl) navEl.classList.add('active');
@@ -3721,6 +3738,7 @@ function closeModal(){const o=document.getElementById('modal-overlay');if(o)o.cl
 function modalConfirm(){if(window._modalConfirm)window._modalConfirm();}
 
 // ==================== INIT ====================
+let currentPage = "dashboard";
 function initApp() {
   initPinBoxes();
   gsLoad();
