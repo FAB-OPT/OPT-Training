@@ -407,9 +407,39 @@
     .sidebar, .btn, .modal-overlay, .topbar { display: none !important; }
     .main { margin-left: 0; padding: 0; }
   }
+
+  .mobile-topbar{display:none;position:fixed;top:0;left:0;right:0;height:56px;background:#1C1C1E;z-index:200;align-items:center;padding:0 16px;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .hamburger{background:none;border:none;cursor:pointer;padding:6px;display:flex;flex-direction:column;gap:5px}
+  .hamburger span{display:block;width:22px;height:2px;background:white;border-radius:2px}
+  .mobile-topbar-title{color:white;font-size:15px;font-weight:700;flex:1;font-family:"Sarabun",sans-serif}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:149}
+  @media(max-width:768px){
+    .mobile-topbar{display:flex}
+    .sidebar{transform:translateX(-100%);transition:transform .25s ease;z-index:150}
+    .sidebar.open{transform:translateX(0)}
+    .sidebar-overlay.open{display:block}
+    .main{margin-left:0!important;padding:68px 14px 24px}
+    .topbar{display:none}
+    .stats-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px}
+    .grid-2,.grid-3{grid-template-columns:1fr!important}
+    .form-row{grid-template-columns:1fr!important;gap:10px}
+    .page-header{flex-direction:column;gap:10px;align-items:flex-start}
+    .card{padding:14px}
+    .modal-box{width:95vw!important;max-height:88vh;overflow-y:auto}
+    table{font-size:12px}
+    th,td{padding:8px!important}
+  }
+  @media(max-width:480px){
+    .stat-card{padding:12px 10px}
+    .page-title{font-size:17px}
+    .modal-box{padding:16px 12px!important}
+  }
 </style>
 </head>
 <body>
+
+<div class="mobile-topbar" id="mobile-topbar"><button class="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></button><div class="mobile-topbar-title" id="mobile-title">OPT Training</div></div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
 <!-- LOGIN -->
 <div id="login-screen">
@@ -2217,6 +2247,9 @@ function doLogin() {
   }
 }
 
+function toggleSidebar(){document.querySelector(".sidebar").classList.toggle("open");document.getElementById("sidebar-overlay").classList.toggle("open");}
+function closeSidebar(){document.querySelector(".sidebar").classList.remove("open");document.getElementById("sidebar-overlay").classList.remove("open");}
+
 function logout() {
   currentUser = null;
   document.getElementById('login-screen').style.display = 'flex';
@@ -2244,11 +2277,11 @@ function showApp() {
     const b = BRANCH_MASTER[currentUser.branchId];
     const bid = currentUser.branchId;
     // Show branch code + name
-    document.getElementById('sidebar-branch-id').textContent = bid;
+    document.getElementById('sidebar-branch-id').textContent = bid; var _mt=document.getElementById('mobile-title'); if(_mt)_mt.textContent=bid+' Training';
     document.getElementById('sidebar-branch-label').textContent = b.name.replace(bid+' ','');
     buildBranchNav(); showPage('dashboard');
   } else {
-    document.getElementById('sidebar-branch-id').textContent = 'ADMIN';
+    document.getElementById('sidebar-branch-id').textContent = 'ADMIN'; var _mt2=document.getElementById('mobile-title'); if(_mt2)_mt2.textContent='Admin';
     document.getElementById('sidebar-branch-label').textContent = 'ผู้ดูแลระบบทั้งระบบ';
     buildAdminNav(); showPage('admin-dashboard');
   }
@@ -2281,6 +2314,7 @@ function buildAdminNav() {
 
 function showPage(page) {
   currentPage = page;
+  closeSidebar();
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const navEl = document.getElementById(`nav-${page}`);
   if (navEl) navEl.classList.add('active');
@@ -2421,6 +2455,7 @@ function filterEmployees() {
 function openAddEmployee() {
   showModal('เพิ่มพนักงานใหม่', `
     <div class="form-row">
+      <div><label class="form-label">รหัสพนักงาน</label><input class="form-input" id="emp-code" placeholder="เช่น 267032"></div>
       <div><label class="form-label">ชื่อ - นามสกุล *</label><input class="form-input" id="emp-name" placeholder="กรอกชื่อ นามสกุล"></div>
       <div><label class="form-label">ตำแหน่ง *</label><select class="form-select" id="emp-pos"><option value="">-- เลือกตำแหน่ง --</option><option value="Service Basic P/T">Service Basic P/T</option>
 <option value="Service Basic">Service Basic</option>
@@ -2451,6 +2486,7 @@ function openAddEmployee() {
     const bid = getBranchId();
     if(!DB.employees[bid]) DB.employees[bid]=[];
     const _ne=mkEmployee(bid,name,pos,start,status);
+    const _ec=document.getElementById('emp-code'); if(_ec&&_ec.value.trim()) _ne.empCode=_ec.value.trim();
     DB.employees[bid].push(_ne); gsSave('employees', _ne.id, _ne);
     closeModal(); showPage('employees'); notify('เพิ่มพนักงานสำเร็จ');
   });
@@ -3257,6 +3293,7 @@ function adminAddEmpToBranch(bid) {
     if(!name||!pos||!start){notify('กรุณากรอกข้อมูลให้ครบ','error');return;}
     if(!DB.employees[bid]) DB.employees[bid]=[];
     const _ne2=mkEmployee(bid,name,pos,start,status);
+    const _ec2=document.getElementById('emp-code'); if(_ec2&&_ec2.value.trim()) _ne2.empCode=_ec2.value.trim();
     DB.employees[bid].push(_ne2); gsSave('employees', _ne2.id, _ne2);
     notify('เพิ่มพนักงานสำเร็จ');
     closeModal();
@@ -3441,6 +3478,7 @@ function adminAddEmpGlobal() {
     if(!bid||!name||!pos||!start){notify('กรุณากรอกข้อมูลให้ครบ','error');return;}
     if(!DB.employees[bid]) DB.employees[bid]=[];
     const _ne3=mkEmployee(bid,name,pos,start,status);
+    const _ec3=document.getElementById('emp-code'); if(_ec3&&_ec3.value.trim()) _ne3.empCode=_ec3.value.trim();
     DB.employees[bid].push(_ne3); gsSave('employees', _ne3.id, _ne3);
     closeModal(); showPage('admin-employees'); notify('เพิ่มพนักงานสำเร็จ');
   });
