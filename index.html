@@ -2039,32 +2039,26 @@ firebase.initializeApp(firebaseConfig);
 const fsdb = firebase.firestore();
 fsdb.enablePersistence().catch(err => console.warn("Offline persistence:", err.code));
 
-async function loadFromFirestore() {
-  try {
-    const [empSnap, trainSnap, quizSnap] = await Promise.all([
-      fsdb.collection('employees').get(),
-      fsdb.collection('trainings').get(),
-      fsdb.collection('quizResults').get()
-    ]);
+function setupFirestoreListeners() {
+  fsdb.collection('employees').onSnapshot(snap => {
     DB.employees = {};
-    empSnap.forEach(doc => {
+    snap.forEach(doc => {
       const e = { id: doc.id, ...doc.data() };
       if (!DB.employees[e.branchId]) DB.employees[e.branchId] = [];
       DB.employees[e.branchId].push(e);
     });
-    DB.trainings = trainSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    DB.quizResults = quizSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  } catch(err) {
-    console.error('Firebase load error:', err);
-    document.getElementById('loading-screen').innerHTML = `
-      <div style="text-align:center;padding:32px;font-family:'Sarabun',sans-serif">
-        <div style="font-size:40px;margin-bottom:16px">⚠️</div>
-        <div style="font-size:18px;font-weight:700;color:#C0392B;margin-bottom:8px">เชื่อมต่อ Firebase ไม่ได้</div>
-        <div style="font-size:13px;color:#4A5568;margin-bottom:4px">${err.message}</div>
-        <button onclick="location.reload()" style="margin-top:20px;padding:10px 24px;background:#E85A0A;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:'Sarabun',sans-serif">ลองใหม่</button>
-      </div>`;
-    throw err;
-  }
+    if (currentUser) showPage(currentPage);
+  }, err => console.error('Employee sync error:', err));
+
+  fsdb.collection('trainings').onSnapshot(snap => {
+    DB.trainings = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    if (currentUser) showPage(currentPage);
+  }, err => console.error('Training sync error:', err));
+
+  fsdb.collection('quizResults').onSnapshot(snap => {
+    DB.quizResults = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }, err => console.error('QuizResult sync error:', err));
+}
 }
 
 async function fsSave(collection, id, data) {
@@ -2288,6 +2282,7 @@ function buildAdminNav() {
 }
 
 function showPage(page) {
+  currentPage = page;
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const navEl = document.getElementById(`nav-${page}`);
   if (navEl) navEl.classList.add('active');
@@ -3747,10 +3742,11 @@ function closeModal(){const o=document.getElementById('modal-overlay');if(o)o.cl
 function modalConfirm(){if(window._modalConfirm)window._modalConfirm();}
 
 // ==================== INIT ====================
-async function initApp() {
-  await loadFromFirestore();
+let currentPage = 'dashboard';
+function initApp() {
   document.getElementById('loading-screen').style.display = 'none';
   initPinBoxes();
+  setupFirestoreListeners();
 }
 initApp();
 
