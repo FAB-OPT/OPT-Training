@@ -2340,15 +2340,18 @@ async function gsLoad() {
     const resp = await fetch(GS_URL + '?action=load');
     const data = await resp.json();
     DB.employees = {};
+    const _empToFix = [];
     (data.employees || []).forEach(e => {
       if (!e) return;
       const bid = String(e.branchId || '').trim();
       if (!bid) return;
-      if (!e.id) { e.id = genId('E'); } else { e.id = String(e.id); }
+      if (!e.id) { e.id = genId('E'); e.branchId = bid; _empToFix.push({...e}); }
+      else { e.id = String(e.id).trim(); }
       e.branchId = bid;
       if (!DB.employees[bid]) DB.employees[bid] = [];
       DB.employees[bid].push(e);
     });
+    _empToFix.forEach(e => gsSave('employees', e.id, e));
     const parseJSON = (v, fb) => {
       if (v === null || v === undefined) return fb;
       try { return typeof v === 'string' ? JSON.parse(v) : v; } catch(_) { return fb; }
@@ -2677,7 +2680,18 @@ function updateBottomNav(page) {
 function getBranchId() { return currentUser.branchId; }
 function getBranchEmployees(bid) { return DB.employees[bid] || []; }
 function getBranchTrainings(bid) { return DB.trainings.filter(t => t.branchId === bid); }
-function getEmployee(id) { const sid = String(id); for (const bid in DB.employees) { const e = DB.employees[bid].find(e => String(e.id) === sid); if(e) return e; } return null; }
+function getEmployee(id) {
+  if (!id) return null;
+  const sid = String(id).trim();
+  for (const bid in DB.employees) {
+    const e = DB.employees[bid].find(e =>
+      String(e.id || '').trim() === sid ||
+      (e.empCode && String(e.empCode).trim() === sid)
+    );
+    if (e) return e;
+  }
+  return null;
+}
 function fmtDate(dt) { if(!dt) return '—'; return new Date(dt).toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'}); }
 function fmtDateTime(dt) { if(!dt) return '—'; const d = new Date(dt); return d.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}); }
 function calcTenure(startDate) {
@@ -2906,7 +2920,7 @@ function renderTrainings() {
           <td style="font-size:12.5px;white-space:nowrap">${fmtDateTime(t.date)}</td>
           <td style="font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name||t.moduleId}</td>
           <td><span class="badge badge-navy">${t.subtopics.length} หัวข้อ</span></td>
-          <td style="font-size:12.5px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name||id).join(', ')}</td>
+          <td style="font-size:12.5px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name).filter(Boolean).join(', ')||'—'}</td>
           <td style="font-size:12.5px">${t.trainerName}</td>
           <td>${badge}</td>
           <td><button class="btn btn-sm btn-outline" onclick="viewTraining('${t.id}')">ดู</button></td>
@@ -3228,16 +3242,19 @@ function renderEvaluations() {
   ${pending.length>0?`<div class="card" style="margin-bottom:16px">
     <div class="card-header"><span class="card-title">รายการรอประเมิน</span></div>
     <div class="table-wrap"><table>
-      <thead><tr><th>วันที่สอน</th><th>Module</th><th>พนักงาน</th><th>เหลือเวลา</th><th>สอบได้</th><th>ดำเนินการ</th></tr></thead>
+      <thead><tr><th>วันที่สอน</th><th>Module</th><th>พนักงาน</th><th>เหลือเวลา</th><th>หัวข้อสะสม</th><th>ดำเนินการ</th></tr></thead>
       <tbody>${pending.map(t=>{
         const dl = new Date(t.date); dl.setDate(dl.getDate()+7);
         const days = Math.ceil((dl-new Date())/(1000*60*60*24));
+        const prog = getSubtopicProgress(t);
+        const complete = prog.done === prog.total;
+        const empNames = (t.traineeIds||[]).map(id=>getEmployee(id)?.name).filter(Boolean).join(', ') || '—';
         return `<tr>
           <td style="font-size:12.5px">${fmtDateTime(t.date)}</td>
           <td style="font-weight:700">${MODULES[t.moduleId]?.name}</td>
-          <td style="font-size:12.5px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name||id).join(', ')}</td>
+          <td style="font-size:12.5px">${empNames}</td>
           <td><span class="badge ${days<=2?'badge-red':'badge-yellow'}">${days} วัน</span></td>
-          <td>${(()=>{const p=getSubtopicProgress(t);return p.done===p.total?'<span class="badge badge-green">ครบ</span>':`<span class="badge badge-yellow">${p.done}/${p.total} หัวข้อ</span>`;})()} </td>
+          <td>${complete?'<span class="badge badge-green">ครบ ✓ สอบได้</span>':`<span class="badge badge-yellow">${prog.done}/${prog.total} หัวข้อ</span>`}</td>
           <td><button class="btn btn-sm btn-navy" onclick="openEvalModal('${t.id}')">ประเมิน</button></td>
         </tr>`;}).join('')}
       </tbody>
