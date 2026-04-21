@@ -2358,9 +2358,10 @@ async function gsLoad() {
     };
     const serverTrainings = (data.trainings || []).map(t => {
       t.branchId = String(t.branchId || '').trim();
+      t.moduleId = String(t.moduleId || '').trim();
       t.eval = parseJSON(t.eval, null);
-      t.subtopics = parseJSON(t.subtopics, []);
-      t.traineeIds = (parseJSON(t.traineeIds, []) || []).map(id => id != null ? String(id) : null).filter(id => id != null && id !== 'null' && id !== '');
+      t.subtopics = (parseJSON(t.subtopics, []) || []).map(s => String(s).trim());
+      t.traineeIds = (parseJSON(t.traineeIds, []) || []).map(id => id != null ? String(id).trim() : null).filter(id => id != null && id !== 'null' && id !== '');
       return t;
     });
     const serverIds = new Set(serverTrainings.map(t => t.id));
@@ -2736,8 +2737,9 @@ function getAccumulatedSubtopics(branchId, moduleId) {
   return new Set(getBranchTrainings(branchId).filter(t => t.moduleId === moduleId).flatMap(t => t.subtopics || []));
 }
 function isModuleComplete(training) {
-  const required = MODULES[training.moduleId]?.subtopics || [];
-  if (!required.length) return true;
+  if (!training.moduleId || !MODULES[training.moduleId]) return false;
+  const required = MODULES[training.moduleId].subtopics || [];
+  if (!required.length) return false;
   const taught = getAccumulatedSubtopics(training.branchId, training.moduleId);
   return required.every(s => taught.has(s));
 }
