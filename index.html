@@ -2354,6 +2354,7 @@ async function gsLoad() {
       try { return typeof v === 'string' ? JSON.parse(v) : v; } catch(_) { return fb; }
     };
     const serverTrainings = (data.trainings || []).map(t => {
+      t.branchId = String(t.branchId || '').trim();
       t.eval = parseJSON(t.eval, null);
       t.subtopics = parseJSON(t.subtopics, []);
       t.traineeIds = (parseJSON(t.traineeIds, []) || []).filter(id => id != null && id !== 'null' && id !== '');
