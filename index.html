@@ -2344,17 +2344,24 @@ async function gsLoad() {
       if (!e) return;
       const bid = String(e.branchId || '').trim();
       if (!bid) return;
+      if (!e.id) { e.id = genId('E'); }
       e.branchId = bid;
       if (!DB.employees[bid]) DB.employees[bid] = [];
       DB.employees[bid].push(e);
     });
-    const parseJSON = (v, fb) => { try { return typeof v === 'string' ? JSON.parse(v) : v; } catch(_) { return fb; } };
-    DB.trainings = (data.trainings || []).map(t => {
+    const parseJSON = (v, fb) => {
+      if (v === null || v === undefined) return fb;
+      try { return typeof v === 'string' ? JSON.parse(v) : v; } catch(_) { return fb; }
+    };
+    const serverTrainings = (data.trainings || []).map(t => {
       t.eval = parseJSON(t.eval, null);
       t.subtopics = parseJSON(t.subtopics, []);
-      t.traineeIds = parseJSON(t.traineeIds, []);
+      t.traineeIds = (parseJSON(t.traineeIds, []) || []).filter(id => id != null && id !== 'null' && id !== '');
       return t;
     });
+    const serverIds = new Set(serverTrainings.map(t => t.id));
+    const localPending = DB.trainings.filter(t => !serverIds.has(t.id));
+    DB.trainings = [...serverTrainings, ...localPending];
     DB.quizResults = data.quizResults || [];
   } catch(err) {
     console.error('GS load error:', err);
@@ -2375,7 +2382,7 @@ async function syncData() {
 }
 
 function gsPost(payload) {
-  fetch(GS_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)})
+  fetch(GS_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload)})
     .catch(err => notify('ระบบไม่ตอบสนอง: ' + err.message, 'error'));
 }
 function gsSave(collection, id, record) { gsPost({action:'save', collection, id, record}); }
@@ -2547,7 +2554,22 @@ function closeSidebar() {
   document.body.style.overflow = '';
 }
 
+let _autoSyncTimer = null;
+
+function startAutoSync() {
+  stopAutoSync();
+  _autoSyncTimer = setInterval(async () => {
+    await gsLoad();
+    if (currentUser) showPage(currentPage);
+  }, 30000);
+}
+
+function stopAutoSync() {
+  if (_autoSyncTimer) { clearInterval(_autoSyncTimer); _autoSyncTimer = null; }
+}
+
 function logout() {
+  stopAutoSync();
   currentUser = null;
   closeSidebar();
   document.body.classList.remove('branch-user','admin-user');
@@ -2580,7 +2602,7 @@ function showApp() {
     // Show branch code + name
     document.getElementById('sidebar-branch-id').textContent = bid; var _mt=document.getElementById('mobile-title'); if(_mt)_mt.textContent=b.name;
     document.getElementById('sidebar-branch-label').textContent = b.name.replace(bid+' ','');
-    buildBranchNav(); showPage('dashboard');
+    buildBranchNav(); showPage('dashboard'); startAutoSync();
   } else {
     document.body.classList.add('admin-user'); document.body.classList.remove('branch-user');
     document.getElementById('sidebar-branch-id').textContent = 'ADMIN'; var _mt2=document.getElementById('mobile-title'); if(_mt2)_mt2.textContent='Admin';
@@ -2588,7 +2610,7 @@ function showApp() {
     // Admin users don't use bottom nav — hide it on all screen sizes
     const bnav = document.getElementById('mobile-bottom-nav');
     if (bnav) bnav.classList.add('hidden-always');
-    buildAdminNav(); showPage('admin-dashboard');
+    buildAdminNav(); showPage('admin-dashboard'); startAutoSync();
   }
 }
 
@@ -2733,7 +2755,7 @@ function renderDashboard() {
             <span style="font-size:13.5px;font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name}</span>
             ${t.eval?`<span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span>`:isEvalDeadlinePassed(t.date)?'<span class="badge badge-gray">หมดเวลา</span>':'<span class="badge badge-yellow">รอประเมิน</span>'}
           </div>
-          <div style="font-size:12px;color:var(--text3);margin-top:3px">${fmtDateTime(t.date)} · ${t.traineeIds.length} คน</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:3px">${fmtDateTime(t.date)} · ${(t.traineeIds||[]).length} คน</div>
         </div>`).join('')}
     </div>
   </div>`;
@@ -2869,7 +2891,7 @@ function renderTrainings() {
           <td style="font-size:12.5px;white-space:nowrap">${fmtDateTime(t.date)}</td>
           <td style="font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name||t.moduleId}</td>
           <td><span class="badge badge-navy">${t.subtopics.length} หัวข้อ</span></td>
-          <td style="font-size:12.5px">${t.traineeIds.map(id=>getEmployee(id)?.name||id).join(', ')}</td>
+          <td style="font-size:12.5px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name||id).join(', ')}</td>
           <td style="font-size:12.5px">${t.trainerName}</td>
           <td>${badge}</td>
           <td><button class="btn btn-sm btn-outline" onclick="viewTraining('${t.id}')">ดู</button></td>
@@ -2939,7 +2961,8 @@ function openAddTraining() {
     const traineeIds = getSelectedEmpIds();
     if(!date||!trainer||!moduleId||!subtopics.length||!traineeIds.length){notify('กรุณากรอกข้อมูลให้ครบ','error');return;}
     const _nt={id:genId('T'),branchId:bid,date,moduleId,subtopics,traineeIds,trainerName:trainer,eval:null};
-    DB.trainings.push(_nt); gsSave('trainings', _nt.id, _nt);
+    DB.trainings.push(_nt);
+    gsSave('trainings', _nt.id, _nt);
     closeModal(); showPage('trainings'); notify('บันทึกการสอนงานสำเร็จ');
   });
 
@@ -3061,7 +3084,7 @@ function renderEmpTags() {
 }
 
 function getSelectedEmpIds() {
-  return _selectedEmps.map(e => e.id);
+  return _selectedEmps.map(e => e.id).filter(id => id != null && id !== 'null' && id !== '');
 }
 
 function updateModulesByTrainees() {
@@ -3155,7 +3178,7 @@ function viewTraining(id) {
     <div class="detail-row"><div class="detail-key">Module</div><div class="detail-val"><strong>${MODULES[t.moduleId]?.name}</strong></div></div>
     <div class="detail-row"><div class="detail-key">วันที่สอน</div><div class="detail-val">${fmtDateTime(t.date)}</div></div>
     <div class="detail-row"><div class="detail-key">ผู้สอน</div><div class="detail-val">${t.trainerName}</div></div>
-    <div class="detail-row"><div class="detail-key">พนักงาน</div><div class="detail-val">${t.traineeIds.map(id=>getEmployee(id)?.name||id).map(n=>`<span class="badge badge-navy" style="margin-right:4px">${n}</span>`).join('')}</div></div>
+    <div class="detail-row"><div class="detail-key">พนักงาน</div><div class="detail-val">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name||id).map(n=>`<span class="badge badge-navy" style="margin-right:4px">${n}</span>`).join('')}</div></div>
     <div class="detail-row"><div class="detail-key">หัวข้อย่อย</div><div class="detail-val">${t.subtopics.map(s=>`<span class="badge badge-blue" style="margin-right:4px;margin-bottom:4px">${s}</span>`).join('')}</div></div>
     <div class="detail-row"><div class="detail-key">สอบครบหมวด</div><div class="detail-val">${isModuleComplete(t)?'<span class="badge badge-green">ครบทุกหัวข้อ</span>':'<span class="badge badge-yellow">ยังไม่ครบ</span>'}</div></div>
     <hr class="section-divider">
@@ -3197,7 +3220,7 @@ function renderEvaluations() {
         return `<tr>
           <td style="font-size:12.5px">${fmtDateTime(t.date)}</td>
           <td style="font-weight:700">${MODULES[t.moduleId]?.name}</td>
-          <td style="font-size:12.5px">${t.traineeIds.map(id=>getEmployee(id)?.name||id).join(', ')}</td>
+          <td style="font-size:12.5px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name||id).join(', ')}</td>
           <td><span class="badge ${days<=2?'badge-red':'badge-yellow'}">${days} วัน</span></td>
           <td>${isModuleComplete(t)?'<span class="badge badge-green">ครบ</span>':'<span class="badge badge-gray">ยังไม่ครบ</span>'}</td>
           <td><button class="btn btn-sm btn-navy" onclick="openEvalModal('${t.id}')">ประเมิน</button></td>
@@ -3339,7 +3362,7 @@ function exportReport(type) {
   } else if(type==='employees'){
     html=`<h2>${titles[type]}</h2><div class="sub">สาขา: ${branchLabel} · วันที่: ${now}</div><table><tr><th>รหัสพนักงาน</th><th>ชื่อ-นามสกุล</th><th>ตำแหน่ง</th><th>วันเริ่มงาน</th><th>อายุงาน</th><th>สถานะ</th></tr>${emps.map(e=>`<tr><td>${e.empCode||'—'}</td><td>${e.name}</td><td>${e.position}</td><td>${fmtDate(e.startDate)}</td><td>${calcTenure(e.startDate)}</td><td>${e.status==='active'?'กำลังทำงาน':'ลาออก'}</td></tr>`).join('')}</table>`;
   } else if(type==='trainings'){
-    html=`<h2>${titles[type]}</h2><div class="sub">สาขา: ${branchLabel} · วันที่: ${now}</div><table><tr><th>วันที่สอน</th><th>Module</th><th>หัวข้อย่อย</th><th>พนักงาน</th><th>ผู้สอน</th></tr>${trains.map(t=>`<tr><td>${fmtDateTime(t.date)}</td><td>${MODULES[t.moduleId]?.name}</td><td>${t.subtopics.join(', ')}</td><td>${t.traineeIds.map(id=>getEmployee(id)?.name||id).join(', ')}</td><td>${t.trainerName}</td></tr>`).join('')}</table>`;
+    html=`<h2>${titles[type]}</h2><div class="sub">สาขา: ${branchLabel} · วันที่: ${now}</div><table><tr><th>วันที่สอน</th><th>Module</th><th>หัวข้อย่อย</th><th>พนักงาน</th><th>ผู้สอน</th></tr>${trains.map(t=>`<tr><td>${fmtDateTime(t.date)}</td><td>${MODULES[t.moduleId]?.name}</td><td>${t.subtopics.join(', ')}</td><td>${(t.traineeIds||[]).map(id=>getEmployee(id)?.name||id).join(', ')}</td><td>${t.trainerName}</td></tr>`).join('')}</table>`;
   } else if(type==='evaluations'){
     const ev=trains.filter(t=>t.eval);
     html=`<h2>${titles[type]}</h2><div class="sub">สาขา: ${branchLabel} · วันที่: ${now}</div><table><tr><th>วันที่สอน</th><th>Module</th><th>วิธีประเมิน</th><th>ผล</th><th>วันที่ประเมิน</th><th>หมายเหตุ</th></tr>${ev.map(t=>`<tr><td>${fmtDateTime(t.date)}</td><td>${MODULES[t.moduleId]?.name}</td><td>${t.eval.method}</td><td>${getEvalResultLabel(t.eval.result)}</td><td>${fmtDate(t.eval.evalDate)}</td><td>${t.eval.note||''}</td></tr>`).join('')}</table>`;
@@ -3674,7 +3697,7 @@ function renderAdminTrainings() {
         <td><span class="badge badge-navy">${t.branchId}</span></td>
         <td style="font-size:12px;white-space:nowrap">${fmtDateTime(t.date)}</td>
         <td style="font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name}</td>
-        <td style="font-size:12px">${t.traineeIds.map(id=>getEmployee(id)?.name||id).join(', ')}</td>
+        <td style="font-size:12px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name||id).join(', ')}</td>
         <td style="font-size:12px">${t.trainerName}</td>
         <td>${t.eval?`<span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span>`:isEvalDeadlinePassed(t.date)?'<span class="badge badge-gray">หมดเวลา</span>':'<span class="badge badge-yellow">รอประเมิน</span>'}</td>
       </tr>`).join('')}</tbody>
