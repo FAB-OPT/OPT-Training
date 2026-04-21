@@ -692,9 +692,9 @@
     <div class="bottom-nav-icon">📋</div>
     <div class="bottom-nav-label">ประเมินผล</div>
   </div>
-  <div class="bottom-nav-item" id="bnav-more" onclick="toggleSidebar()">
-    <div class="bottom-nav-icon">☰</div>
-    <div class="bottom-nav-label">เพิ่มเติม</div>
+  <div class="bottom-nav-item" id="bnav-logout" onclick="logout()">
+    <div class="bottom-nav-icon">↩</div>
+    <div class="bottom-nav-label">ออกจากระบบ</div>
   </div>
 </div>
 
@@ -2552,7 +2552,7 @@ function showApp() {
     const b = BRANCH_MASTER[currentUser.branchId];
     const bid = currentUser.branchId;
     // Show branch code + name
-    document.getElementById('sidebar-branch-id').textContent = bid; var _mt=document.getElementById('mobile-title'); if(_mt)_mt.textContent=bid+' Training';
+    document.getElementById('sidebar-branch-id').textContent = bid; var _mt=document.getElementById('mobile-title'); if(_mt)_mt.textContent=b.name;
     document.getElementById('sidebar-branch-label').textContent = b.name.replace(bid+' ','');
     // Show bottom nav for branch users
     const bnav = document.getElementById('mobile-bottom-nav');
