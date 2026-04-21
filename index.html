@@ -294,7 +294,11 @@
   .progress-yellow { background: var(--yellow); }
 
   /* ==================== NOTIFICATION ==================== */
-  .notif { position: fixed; top: 20px; right: 20px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 13px 18px; font-size: 13.5px; z-index: 999; box-shadow: var(--shadow-lg); transform: translateX(120%); transition: transform 0.3s cubic-bezier(.34,1.56,.64,1); max-width: 300px; font-weight: 600; }
+  .notif { position: fixed; top: 20px; right: 20px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 13px 18px; font-size: 13.5px; z-index: 999; box-shadow: var(--shadow-lg); transform: translateX(200%); transition: transform 0.3s cubic-bezier(.34,1.56,.64,1); max-width: 300px; font-weight: 600; }
+  /* Sync button: branch users don't need it */
+  body.branch-user #sync-btn { display: none; }
+  /* Report button in topbar: branch mobile only */
+  #topbar-report-btn { display: none; }
   .notif.show { transform: translateX(0); }
   .notif.success { border-left: 4px solid var(--green); }
   .notif.error { border-left: 4px solid var(--red); }
@@ -628,6 +632,17 @@
     .notif { max-width: calc(100vw - 32px); right: 16px; }
   }
 
+    /* Table horizontal scroll on mobile */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .table-wrap table { min-width: 520px; }
+    .table-wrap td, .table-wrap th { white-space: nowrap; }
+
+    /* Branch user: hide hamburger, show report btn, move notif */
+    body.branch-user .hamburger { display: none; }
+    body.branch-user #topbar-report-btn { display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.12); border: none; color: white; font-family: 'Sarabun',sans-serif; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+    .notif { top: 64px !important; right: 10px !important; max-width: calc(100vw - 20px); }
+  }
+
   @media (max-width: 480px) {
     .main { padding: 68px 10px 80px !important; }
     .stats-grid { gap: 6px; }
@@ -671,6 +686,7 @@
     <span></span><span></span><span></span>
   </button>
   <div class="mobile-topbar-title" id="mobile-title">OPT Training</div>
+  <button id="topbar-report-btn" onclick="showPage('reports');updateBottomNav('reports')">📊 รายงาน</button>
 </div>
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -2527,6 +2543,7 @@ function closeSidebar() {
 function logout() {
   currentUser = null;
   closeSidebar();
+  document.body.classList.remove('branch-user','admin-user');
   document.getElementById('mobile-bottom-nav').classList.remove('hidden-always');
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
@@ -2550,6 +2567,7 @@ function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   if (currentUser.type === 'branch') {
+    document.body.classList.add('branch-user'); document.body.classList.remove('admin-user');
     const b = BRANCH_MASTER[currentUser.branchId];
     const bid = currentUser.branchId;
     // Show branch code + name
@@ -2557,6 +2575,7 @@ function showApp() {
     document.getElementById('sidebar-branch-label').textContent = b.name.replace(bid+' ','');
     buildBranchNav(); showPage('dashboard');
   } else {
+    document.body.classList.add('admin-user'); document.body.classList.remove('branch-user');
     document.getElementById('sidebar-branch-id').textContent = 'ADMIN'; var _mt2=document.getElementById('mobile-title'); if(_mt2)_mt2.textContent='Admin';
     document.getElementById('sidebar-branch-label').textContent = 'ผู้ดูแลระบบทั้งระบบ';
     // Admin users don't use bottom nav — hide it on all screen sizes
