@@ -2340,18 +2340,19 @@ async function gsLoad() {
     const resp = await fetch(GS_URL + '?action=load');
     const data = await resp.json();
     DB.employees = {};
-    const _empToFix = [];
     (data.employees || []).forEach(e => {
       if (!e) return;
       const bid = String(e.branchId || '').trim();
       if (!bid) return;
-      if (!e.id) { e.id = genId('E'); e.branchId = bid; _empToFix.push({...e}); }
-      else { e.id = String(e.id).trim(); }
+      if (!e.id) {
+        const s = String(e.name || '') + bid + String(e.startDate || '');
+        let h = 0; for (let i = 0; i < s.length; i++) { h = Math.imul(31, h) + s.charCodeAt(i) | 0; }
+        e.id = 'E' + Math.abs(h).toString().slice(0, 7);
+      } else { e.id = String(e.id).trim(); }
       e.branchId = bid;
       if (!DB.employees[bid]) DB.employees[bid] = [];
       DB.employees[bid].push(e);
     });
-    _empToFix.forEach(e => gsSave('employees', e.id, e));
     const parseJSON = (v, fb) => {
       if (v === null || v === undefined) return fb;
       try { return typeof v === 'string' ? JSON.parse(v) : v; } catch(_) { return fb; }
