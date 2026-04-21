@@ -261,6 +261,12 @@
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   .form-full { margin-bottom: 14px; }
   .form-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 700; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+  .req { color: #E85A0A; font-style: normal; }
+  /* iOS date/datetime inputs: prevent overflowing container */
+  input[type="date"], input[type="datetime-local"] {
+    min-width: 0 !important; width: 100% !important; box-sizing: border-box !important;
+    -webkit-appearance: none; appearance: none;
+  }
   .form-input, .form-select, .form-textarea {
     width: 100%; padding: 9px 12px; background: var(--white); border: 1.5px solid var(--border2);
     border-radius: 6px; color: var(--text); font-family: 'Sarabun', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s;
@@ -2771,8 +2777,8 @@ function openAddEmployee() {
   showModal('เพิ่มพนักงานใหม่', `
     <div class="form-row">
       <div><label class="form-label">รหัสพนักงาน</label><input class="form-input" id="emp-code" placeholder="เช่น 267032"></div>
-      <div><label class="form-label">ชื่อ - นามสกุล *</label><input class="form-input" id="emp-name" placeholder="กรอกชื่อ นามสกุล"></div>
-      <div><label class="form-label">ตำแหน่ง *</label><select class="form-select" id="emp-pos"><option value="">-- เลือกตำแหน่ง --</option><option value="Service Basic P/T">Service Basic P/T</option>
+      <div><label class="form-label">ชื่อ - นามสกุล <span class="req">*</span></label><input class="form-input" id="emp-name" placeholder="กรอกชื่อ นามสกุล"></div>
+      <div><label class="form-label">ตำแหน่ง <span class="req">*</span></label><select class="form-select" id="emp-pos"><option value="">-- เลือกตำแหน่ง --</option><option value="Service Basic P/T">Service Basic P/T</option>
 <option value="Service Basic">Service Basic</option>
 <option value="Service Silver P/T">Service Silver P/T</option>
 <option value="Service Silver">Service Silver</option>
@@ -2790,7 +2796,7 @@ function openAddEmployee() {
 <option value="Restaurant General Manager">Restaurant General Manager</option></select></div>
     </div>
     <div class="form-row">
-      <div><label class="form-label">วันเริ่มงาน *</label><input class="form-input" type="date" id="emp-start"></div>
+      <div><label class="form-label">วันเริ่มงาน <span class="req">*</span></label><input class="form-input" type="date" id="emp-start"></div>
       <div><label class="form-label">สถานะ</label><select class="form-select" id="emp-status"><option value="active">กำลังทำงาน</option><option value="resigned">ลาออก</option></select></div>
     </div>`, () => {
     const name = document.getElementById('emp-name').value.trim();
@@ -2889,11 +2895,11 @@ function openAddTraining() {
 
   showModal('บันทึกการสอนงาน', `
     <div class="form-row">
-      <div><label class="form-label">วันที่และเวลาที่สอน *</label><input class="form-input" type="datetime-local" id="tr-date" value="${now}"></div>
-      <div><label class="form-label">ชื่อผู้สอนงาน *</label><input class="form-input" id="tr-trainer" placeholder="ชื่อผู้สอน"></div>
+      <div><label class="form-label">วันที่และเวลาที่สอน <span class="req">*</span></label><input class="form-input" type="datetime-local" id="tr-date" value="${now}"></div>
+      <div><label class="form-label">ชื่อผู้สอนงาน <span class="req">*</span></label><input class="form-input" id="tr-trainer" placeholder="ชื่อผู้สอน"></div>
     </div>
     <div class="form-full">
-      <label class="form-label">พนักงานที่เข้ารับการสอน *</label>
+      <label class="form-label">พนักงานที่เข้ารับการสอน <span class="req">*</span></label>
       <div class="emp-multiselect" id="emp-multiselect" data-emps='${empsJson.replace(/'/g,"&#39;")}'>
         <div class="emp-select-box" id="emp-select-box" onclick="focusEmpSearch(event)">
           <span id="emp-placeholder" style="color:var(--text3);font-size:14px;padding:2px 4px">${emps.length===0?'ไม่มีพนักงานในระบบ':'ค้นหาและเลือกพนักงาน...'}</span>
@@ -2914,14 +2920,14 @@ function openAddTraining() {
       </div>
     </div>
     <div class="form-full">
-      <label class="form-label">Module หลัก *</label>
+      <label class="form-label">Module หลัก <span class="req">*</span></label>
       <div id="module-hint" style="font-size:12px;color:var(--text3);margin-bottom:6px">⬆ เลือกพนักงานก่อน เพื่อแสดง Module ที่เหมาะสม</div>
       <select class="form-select" id="tr-module" onchange="updateSubtopics()" disabled>
         <option value="">— กรุณาเลือกพนักงานก่อน —</option>
       </select>
     </div>
     <div class="form-full">
-      <label class="form-label">หัวข้อย่อย *</label>
+      <label class="form-label">หัวข้อย่อย <span class="req">*</span></label>
       <div class="checkbox-group" id="subtopics-container"><span class="text-muted">กรุณาเลือก Module ก่อน</span></div>
     </div>`, () => {
     const date = document.getElementById('tr-date').value;
@@ -3224,11 +3230,11 @@ function openEvalModal(trainingId) {
       <div style="font-size:12px;color:var(--text2);margin-top:3px">${fmtDateTime(t.date)} · ผู้สอน: ${t.trainerName}</div>
     </div>
     <div class="form-full">
-      <label class="form-label">วิธีการประเมินผล *</label>
+      <label class="form-label">วิธีการประเมินผล <span class="req">*</span></label>
       <div class="eval-method">${EVAL_METHODS.map(m=>`<div class="eval-method-item" onclick="selectEvalMethod(this,'${m.replace(/'/g,"\\'")}')"><div style="font-size:13px">${m}</div></div>`).join('')}</div>
     </div>
     <div class="form-full">
-      <label class="form-label">ผลการประเมิน *</label>
+      <label class="form-label">ผลการประเมิน <span class="req">*</span></label>
       <select class="form-select" id="result-select" onchange="selectEvalResult(this.value)">
         <option value="">เลือกผลการประเมิน</option>
         ${EVAL_RESULTS.map(r=>`<option value="${r.value}">${r.label}</option>`).join('')}
@@ -3445,16 +3451,16 @@ function openAddBranch() {
   showModal('+ เพิ่มสาขาใหม่', `
     <div class="form-row">
       <div>
-        <label class="form-label">รหัสสาขา (4 หลัก) *</label>
+        <label class="form-label">รหัสสาขา (4 หลัก) <span class="req">*</span></label>
         <input class="form-input" id="b-code" placeholder="เช่น 5099" maxlength="4" style="font-family:monospace;font-size:18px;font-weight:700;letter-spacing:4px">
       </div>
       <div>
-        <label class="form-label">ชื่อสาขา *</label>
+        <label class="form-label">ชื่อสาขา <span class="req">*</span></label>
         <input class="form-input" id="b-name" placeholder="เช่น เซ็นทรัล ลาดพร้าว">
       </div>
     </div>
     <div class="form-full">
-      <label class="form-label">ผู้จัดการเขต *</label>
+      <label class="form-label">ผู้จัดการเขต <span class="req">*</span></label>
       <input class="form-input" id="b-mgr" placeholder="ชื่อผู้จัดการเขต">
     </div>
   `, () => {
@@ -3579,8 +3585,8 @@ function confirmDeleteTraining(tId, bid) {
 function adminAddEmpToBranch(bid) {
   showModal(`เพิ่มพนักงาน — สาขา ${bid}`, `
     <div class="form-row">
-      <div><label class="form-label">ชื่อ - นามสกุล *</label><input class="form-input" id="emp-name" placeholder="กรอกชื่อ นามสกุล"></div>
-      <div><label class="form-label">ตำแหน่ง *</label><select class="form-select" id="emp-pos"><option value="">-- เลือกตำแหน่ง --</option><option value="Service Basic P/T">Service Basic P/T</option>
+      <div><label class="form-label">ชื่อ - นามสกุล <span class="req">*</span></label><input class="form-input" id="emp-name" placeholder="กรอกชื่อ นามสกุล"></div>
+      <div><label class="form-label">ตำแหน่ง <span class="req">*</span></label><select class="form-select" id="emp-pos"><option value="">-- เลือกตำแหน่ง --</option><option value="Service Basic P/T">Service Basic P/T</option>
 <option value="Service Basic">Service Basic</option>
 <option value="Service Silver P/T">Service Silver P/T</option>
 <option value="Service Silver">Service Silver</option>
@@ -3598,7 +3604,7 @@ function adminAddEmpToBranch(bid) {
 <option value="Restaurant General Manager">Restaurant General Manager</option></select></div>
     </div>
     <div class="form-row">
-      <div><label class="form-label">วันเริ่มงาน *</label><input class="form-input" type="date" id="emp-start"></div>
+      <div><label class="form-label">วันเริ่มงาน <span class="req">*</span></label><input class="form-input" type="date" id="emp-start"></div>
       <div><label class="form-label">สถานะ</label><select class="form-select" id="emp-status"><option value="active">กำลังทำงาน</option><option value="resigned">ลาออก</option></select></div>
     </div>`, () => {
     const name = document.getElementById('emp-name').value.trim();
@@ -3759,12 +3765,12 @@ function adminAddEmpGlobal() {
   const branchOpts = Object.keys(BRANCH_MASTER).map(id=>`<option value="${id}">${id} — ${BRANCH_MASTER[id].name.replace(id+' ','')}</option>`).join('');
   showModal('เพิ่มพนักงานใหม่', `
     <div class="form-full">
-      <label class="form-label">สาขา *</label>
+      <label class="form-label">สาขา <span class="req">*</span></label>
       <select class="form-select" id="emp-branch"><option value="">— เลือกสาขา —</option>${branchOpts}</select>
     </div>
     <div class="form-row">
-      <div><label class="form-label">ชื่อ - นามสกุล *</label><input class="form-input" id="emp-name" placeholder="กรอกชื่อ นามสกุล"></div>
-      <div><label class="form-label">ตำแหน่ง *</label><select class="form-select" id="emp-pos"><option value="">-- เลือกตำแหน่ง --</option><option value="Service Basic P/T">Service Basic P/T</option>
+      <div><label class="form-label">ชื่อ - นามสกุล <span class="req">*</span></label><input class="form-input" id="emp-name" placeholder="กรอกชื่อ นามสกุล"></div>
+      <div><label class="form-label">ตำแหน่ง <span class="req">*</span></label><select class="form-select" id="emp-pos"><option value="">-- เลือกตำแหน่ง --</option><option value="Service Basic P/T">Service Basic P/T</option>
 <option value="Service Basic">Service Basic</option>
 <option value="Service Silver P/T">Service Silver P/T</option>
 <option value="Service Silver">Service Silver</option>
@@ -3782,7 +3788,7 @@ function adminAddEmpGlobal() {
 <option value="Restaurant General Manager">Restaurant General Manager</option></select></div>
     </div>
     <div class="form-row">
-      <div><label class="form-label">วันเริ่มงาน *</label><input class="form-input" type="date" id="emp-start"></div>
+      <div><label class="form-label">วันเริ่มงาน <span class="req">*</span></label><input class="form-input" type="date" id="emp-start"></div>
       <div><label class="form-label">สถานะ</label><select class="form-select" id="emp-status"><option value="active">กำลังทำงาน</option><option value="resigned">ลาออก</option></select></div>
     </div>`, () => {
     const bid = document.getElementById('emp-branch').value;
