@@ -2340,15 +2340,13 @@ async function gsLoad() {
     const resp = await fetch(GS_URL + '?action=load');
     const data = await resp.json();
     DB.employees = {};
+    DB._nullIdEmployees = 0;
     (data.employees || []).forEach(e => {
       if (!e) return;
       const bid = String(e.branchId || '').trim();
       if (!bid) return;
-      if (!e.id) {
-        const s = String(e.name || '') + bid + String(e.startDate || '');
-        let h = 0; for (let i = 0; i < s.length; i++) { h = Math.imul(31, h) + s.charCodeAt(i) | 0; }
-        e.id = 'E' + Math.abs(h).toString().slice(0, 7);
-      } else { e.id = String(e.id).trim(); }
+      if (!e.id || String(e.id).trim() === '') { DB._nullIdEmployees++; return; }
+      e.id = String(e.id).trim();
       e.branchId = bid;
       if (!DB.employees[bid]) DB.employees[bid] = [];
       DB.employees[bid].push(e);
@@ -3422,6 +3420,7 @@ function renderAdminDashboard() {
   return `
   <div class="topbar"><div class="topbar-title">Admin · ผู้ดูแลระบบ</div><div class="topbar-user"><div class="topbar-avatar">AD</div>Administrator</div></div>
   <div class="page-header"><div><div class="page-title">Dashboard ทั้งระบบ</div><div class="page-sub">ภาพรวมการสอนงานทุกสาขา · ${fmtDate(new Date().toISOString())}</div></div></div>
+  ${(DB._nullIdEmployees||0)>0?`<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px">⚠ พบพนักงาน <strong>${DB._nullIdEmployees} คน</strong> ที่ไม่มีรหัส ID ใน Sheets — กรุณาเปิด Google Sheets → sheet <strong>employees</strong> แล้วลบแถวที่คอลัมน์ <code>id</code> ว่างออก แล้วกด Sync</div>`:''}
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-icon-wrap stat-icon-blue">🏪</div><div class="stat-info"><div class="stat-value stat-value-blue">${Object.keys(BRANCH_MASTER).length}</div><div class="stat-label">สาขาทั้งหมด</div></div></div>
     <div class="stat-card"><div class="stat-icon-wrap stat-icon-green">👥</div><div class="stat-info"><div class="stat-value stat-value-green">${allEmps.filter(e=>e.status==='active').length}</div><div class="stat-label">พนักงานกำลังทำงาน</div></div></div>
