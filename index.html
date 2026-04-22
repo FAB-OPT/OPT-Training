@@ -2644,6 +2644,7 @@ function buildAdminNav() {
     <div class="nav-item" id="nav-admin-branches" onclick="showPage('admin-branches')"><span class="nav-icon">◼</span> สาขาทั้งหมด</div>
     <div class="nav-item" id="nav-admin-employees" onclick="showPage('admin-employees')"><span class="nav-icon">◼</span> จัดการพนักงาน</div>
     <div class="nav-item" id="nav-admin-trainings" onclick="showPage('admin-trainings')"><span class="nav-icon">◼</span> ประวัติการสอนงาน</div>
+    <div class="nav-item" id="nav-admin-evaluations" onclick="showPage('admin-evaluations')"><span class="nav-icon">◼</span> ผลการประเมิน</div>
     <div class="nav-section-label" style="margin-top:8px">รายงาน</div>
     <div class="nav-item" id="nav-admin-reports" onclick="showPage('admin-reports')"><span class="nav-icon">◼</span> ออกรายงาน</div>`;
 }
@@ -2659,7 +2660,8 @@ function showPage(page) {
     'trainings': renderTrainings, 'evaluations': renderEvaluations, 'reports': renderReports,
     'admin-dashboard': renderAdminDashboard, 'admin-branches': renderAdminBranches,
     'admin-employees': renderAdminEmployees,
-    'admin-trainings': renderAdminTrainings, 'admin-reports': renderAdminReports,
+    'admin-trainings': renderAdminTrainings, 'admin-evaluations': renderAdminEvaluations,
+    'admin-reports': renderAdminReports,
   };
   if (pages[page]) document.getElementById('main-content').innerHTML = pages[page]();
   updateBottomNav(page);
@@ -3513,22 +3515,49 @@ function renderAdminDashboard() {
     <div class="card">
       <div class="card-header"><span class="card-title">สรุปรายสาขา</span></div>
       <div class="table-wrap"><table>
-        <thead><tr><th>รหัส</th><th>ชื่อสาขา</th><th>ผู้ดูแล</th><th>พนักงาน</th><th>สอน</th><th>ผ่าน</th></tr></thead>
+        <thead><tr><th>รหัส</th><th>ชื่อสาขา</th><th>ผู้ดูแล</th><th>พนักงาน</th><th>สอน</th><th>ผ่าน/ประเมิน</th><th>อัตรา</th></tr></thead>
         <tbody>${Object.entries(BRANCH_MASTER).map(([id,b])=>{
           const e=getBranchEmployees(id).filter(e=>e.status==='active').length;
           const tr=getBranchTrainings(id); const ev2=tr.filter(t=>t.eval); const ps2=ev2.filter(t=>isEvalPass(t.eval.result));
-          return `<tr><td style="font-family:monospace;font-weight:700;color:#1C1C1E">${id}</td><td style="font-size:12.5px">${b.name.replace(id+' ','')}</td><td style="font-size:12px;color:var(--text2)">${b.manager}</td><td>${e}</td><td>${tr.length}</td><td>${ps2.length}/${ev2.length}</td></tr>`;
+          const rate=ev2.length?Math.round(ps2.length/ev2.length*100):null;
+          return `<tr><td style="font-family:monospace;font-weight:700;color:#1C1C1E">${id}</td><td style="font-size:12.5px">${b.name.replace(id+' ','')}</td><td style="font-size:12px;color:var(--text2)">${b.manager}</td><td>${e}</td><td>${tr.length}</td><td>${ps2.length}/${ev2.length}</td><td>${rate!==null?`<span class="badge ${rate>=80?'badge-green':rate>=50?'badge-yellow':'badge-red'}">${rate}%</span>`:'—'}</td></tr>`;
         }).join('')}</tbody>
       </table></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">การสอนงานตาม Module</span></div>
+      <div class="card-header"><span class="card-title">ผลประเมินตาม Module</span><button class="btn btn-sm btn-outline" onclick="showPage('admin-evaluations')" style="margin-left:auto">ดูทั้งหมด →</button></div>
       ${Object.entries(MODULES).map(([id,m])=>{
-        const cnt=DB.trainings.filter(t=>t.moduleId===id).length;
-        const max=Math.max(...Object.entries(MODULES).map(([i])=>DB.trainings.filter(t=>t.moduleId===i).length),1);
-        return `<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:13px;font-weight:600">${m.name}</span><span style="font-size:11px;font-weight:700;color:var(--text2)">${cnt} ครั้ง</span></div><div class="progress-bar"><div class="progress-fill progress-blue" style="width:${Math.round(cnt/max*100)}%"></div></div></div>`;
+        const evM=DB.trainings.filter(t=>t.moduleId===id&&t.eval);
+        const passM=evM.filter(t=>isEvalPass(t.eval.result)).length;
+        const failM=evM.length-passM;
+        const trainCnt=DB.trainings.filter(t=>t.moduleId===id).length;
+        return `<div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:13px;font-weight:600">${m.name}</span>
+            <span style="font-size:11px;color:var(--text2)">${trainCnt} ครั้งสอน · ประเมิน ${evM.length}</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <span class="badge badge-green" style="font-size:11px">ผ่าน ${passM}</span>
+            <span class="badge badge-red" style="font-size:11px">ไม่ผ่าน ${failM}</span>
+            ${evM.length?`<span class="badge badge-gray" style="font-size:11px">${Math.round(passM/evM.length*100)}%</span>`:''}
+          </div>
+        </div>`;
       }).join('')}
     </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-header"><span class="card-title">ผลประเมินล่าสุด (10 รายการ)</span><button class="btn btn-sm btn-outline" onclick="showPage('admin-evaluations')" style="margin-left:auto">ดูทั้งหมด →</button></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>สาขา</th><th>วันที่ประเมิน</th><th>Module</th><th>พนักงาน</th><th>วิธี</th><th>ผล</th></tr></thead>
+      <tbody>${(()=>{const evRows=DB.trainings.filter(t=>t.eval).sort((a,b)=>b.eval.evalDate.localeCompare(a.eval.evalDate)).slice(0,10);return evRows.length?evRows.map(t=>`<tr>
+        <td><span class="badge badge-navy">${t.branchId}</span></td>
+        <td style="font-size:12px">${fmtDate(t.eval.evalDate)}</td>
+        <td style="font-weight:700;color:var(--primary);font-size:12.5px">${MODULES[t.moduleId]?.name}</td>
+        <td style="font-size:12px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name).filter(Boolean).join(', ')||'—'}</td>
+        <td style="font-size:12px">${t.eval.method?.charAt(0)||'—'}</td>
+        <td><span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result).split(' ')[0]}</span></td>
+      </tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">ยังไม่มีการประเมิน</td></tr>'})()}</tbody>
+    </table></div>
   </div>`;
 }
 
@@ -3829,6 +3858,70 @@ function renderAdminTrainings() {
       </tr>`).join('')}</tbody>
     </table></div>
   </div>`;
+}
+
+function renderAdminEvaluations() {
+  const evTrains = DB.trainings.filter(t=>t.eval);
+  const passed = evTrains.filter(t=>isEvalPass(t.eval.result)).length;
+  const failed = evTrains.length - passed;
+  const branchOptions = Object.keys(BRANCH_MASTER).map(id=>`<option value="${id}">${id}</option>`).join('');
+  const moduleOptions = Object.entries(MODULES).map(([k,m])=>`<option value="${k}">${m.name}</option>`).join('');
+  return `
+  <div class="topbar"><div class="topbar-title">Admin · ผลการประเมิน</div></div>
+  <div class="page-header"><div><div class="page-title">ผลการประเมินทั้งระบบ</div><div class="page-sub">${evTrains.length} รายการประเมิน</div></div></div>
+  <div class="stats-grid" style="margin-bottom:16px">
+    <div class="stat-card"><div class="stat-icon-wrap stat-icon-blue">📋</div><div class="stat-info"><div class="stat-value stat-value-blue">${evTrains.length}</div><div class="stat-label">ประเมินแล้ว</div></div></div>
+    <div class="stat-card"><div class="stat-icon-wrap stat-icon-green">✅</div><div class="stat-info"><div class="stat-value stat-value-green">${passed}</div><div class="stat-label">ผ่าน</div></div></div>
+    <div class="stat-card"><div class="stat-icon-wrap stat-icon-red" style="background:#fee2e2">❌</div><div class="stat-info"><div class="stat-value" style="color:var(--red)">${failed}</div><div class="stat-label">ไม่ผ่าน</div></div></div>
+    <div class="stat-card"><div class="stat-icon-wrap stat-icon-purple">%</div><div class="stat-info"><div class="stat-value stat-value-purple">${evTrains.length?Math.round(passed/evTrains.length*100):0}%</div><div class="stat-label">อัตราผ่าน</div></div></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <select class="form-select" id="ae-branch" onchange="filterAdminEvals()" style="width:160px"><option value="">— ทุกสาขา —</option>${branchOptions}</select>
+      <select class="form-select" id="ae-module" onchange="filterAdminEvals()" style="width:200px"><option value="">— ทุก Module —</option>${moduleOptions}</select>
+      <select class="form-select" id="ae-result" onchange="filterAdminEvals()" style="width:180px">
+        <option value="">— ทุกผล —</option>
+        <option value="pass">ผ่าน (3-4)</option>
+        <option value="fail">ไม่ผ่าน (1-2)</option>
+        ${EVAL_RESULTS.map(r=>`<option value="${r.value}">${r.label.split('=')[0].trim()}</option>`).join('')}
+      </select>
+    </div>
+  </div>
+  <div class="card">
+    <div class="table-wrap"><table>
+      <thead><tr><th>สาขา</th><th>วันที่ประเมิน</th><th>Module</th><th>พนักงาน</th><th>ผู้สอน</th><th>วิธี</th><th>ผล</th><th>หมายเหตุ</th><th>จัดการ</th></tr></thead>
+      <tbody id="admin-evals-tbody">${renderAdminEvalRows(evTrains)}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function renderAdminEvalRows(rows) {
+  if(!rows.length) return '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px">ไม่มีข้อมูลการประเมิน</td></tr>';
+  return rows.sort((a,b)=>b.eval.evalDate.localeCompare(a.eval.evalDate)).map(t=>`<tr>
+    <td><span class="badge badge-navy">${t.branchId}</span></td>
+    <td style="font-size:12px;white-space:nowrap">${fmtDate(t.eval.evalDate)}</td>
+    <td style="font-weight:700;color:var(--primary);font-size:12.5px">${MODULES[t.moduleId]?.name||t.moduleId}</td>
+    <td style="font-size:12px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name).filter(Boolean).join(', ')||'—'}</td>
+    <td style="font-size:12px">${t.trainerName}</td>
+    <td style="font-size:12px">${t.eval.method||'—'}</td>
+    <td><span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result).split('=')[0].trim()}</span></td>
+    <td style="font-size:12px;color:var(--text2);max-width:160px">${t.eval.note||'—'}</td>
+    <td><button class="btn btn-sm btn-outline" onclick="adminDeleteEval('${t.id}')">ลบผลประเมิน</button></td>
+  </tr>`).join('');
+}
+
+function filterAdminEvals() {
+  const branch = document.getElementById('ae-branch')?.value||'';
+  const module = document.getElementById('ae-module')?.value||'';
+  const result = document.getElementById('ae-result')?.value||'';
+  let rows = DB.trainings.filter(t=>t.eval);
+  if(branch) rows = rows.filter(t=>String(t.branchId)===branch);
+  if(module) rows = rows.filter(t=>t.moduleId===module);
+  if(result==='pass') rows = rows.filter(t=>isEvalPass(t.eval.result));
+  else if(result==='fail') rows = rows.filter(t=>!isEvalPass(t.eval.result));
+  else if(result) rows = rows.filter(t=>String(t.eval.result)===result);
+  const tbody = document.getElementById('admin-evals-tbody');
+  if(tbody) tbody.innerHTML = renderAdminEvalRows(rows);
 }
 
 function renderAdminReports() {
