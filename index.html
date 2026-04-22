@@ -2836,30 +2836,77 @@ function renderDashboard() {
     }).join('');
 
     return `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:stretch">
-      <div class="card" style="margin-bottom:0">
-        <div class="card-header"><span class="card-title">พนักงานแยกตามประเภท</span><span style="font-size:11px;color:var(--text3)">รวม ${totalActive} คน · กดเพื่อดูรายชื่อ</span></div>
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-          <svg width="140" height="140" viewBox="0 0 160 160">${totalActive?slices:`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#E5E7EB"/>`}${totalActive?`<circle cx="${cx}" cy="${cy}" r="38" fill="white"/><text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="22" font-weight="700" fill="#1C1C1E">${totalActive}</text><text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="11" fill="#6B7280">คน</text>`:''}</svg>
-          <div style="flex:1;min-width:140px">
+    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+      <div class="stat-card"><div class="stat-icon-wrap stat-icon-blue">👥</div><div class="stat-info"><div class="stat-value stat-value-blue">${emps.length}</div><div class="stat-label">พนักงานทั้งหมด</div></div></div>
+      <div class="stat-card"><div class="stat-icon-wrap stat-icon-green">✓</div><div class="stat-info"><div class="stat-value stat-value-green">${totalActive}</div><div class="stat-label">กำลังทำงาน</div></div></div>
+      <div class="stat-card"><div class="stat-icon-wrap stat-icon-yellow">⏳</div><div class="stat-info"><div class="stat-value stat-value-yellow">${pending.length}</div><div class="stat-label">รอประเมินผล</div></div></div>
+      <div class="stat-card"><div class="stat-icon-wrap stat-icon-purple">%</div><div class="stat-info"><div class="stat-value stat-value-purple">${passRate}%</div><div class="stat-label">อัตราผ่านประเมิน</div></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;align-items:start">
+      <div class="card" style="margin:0">
+        <div class="card-header"><span class="card-title">แยกตามประเภท</span><span style="font-size:11px;color:var(--text3)">กดเพื่อดูรายชื่อ</span></div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <svg width="110" height="110" viewBox="0 0 160 160" style="flex-shrink:0">
+            ${totalActive?slices:`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#E5E7EB"/>`}
+            ${totalActive?`<circle cx="${cx}" cy="${cy}" r="38" fill="white"/><text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="22" font-weight="700" fill="#1C1C1E">${totalActive}</text><text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="11" fill="#6B7280">คน</text>`:''}
+          </svg>
+          <div style="flex:1;min-width:0">
             ${pieGroups.map(({g,n,color})=>`
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:6px;border-radius:8px;background:var(--surface2);cursor:pointer;border:1.5px solid ${color}20" onclick="showEmpGroupModal('${bid}','${g}')">
-                <div style="display:flex;align-items:center;gap:7px">
-                  <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></div>
-                  <span style="font-size:12px;font-weight:600">${g}</span>
+              <div style="padding:7px 9px;margin-bottom:6px;border-radius:8px;background:${color}10;cursor:pointer;border-left:3px solid ${color}" onclick="showEmpGroupModal('${bid}','${g.replace(/'/g,"\\'")}')">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                  <span style="font-size:11px;font-weight:600;color:${color}">${g}</span>
+                  <span style="font-size:14px;font-weight:700;color:${color}">${n}<span style="font-size:10px;font-weight:400;color:var(--text3)"> คน</span></span>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px">
-                  <span style="font-size:17px;font-weight:700;color:${color}">${n}</span>
-                  <span style="font-size:11px;color:${color}">คน</span>
-                  <span style="font-size:11px;color:var(--text3)">${totalActive?Math.round(n/totalActive*100):0}%</span>
+                <div style="height:5px;background:${color}25;border-radius:3px;overflow:hidden">
+                  <div style="height:100%;width:${totalActive?Math.round(n/totalActive*100):0}%;background:${color};border-radius:3px"></div>
                 </div>
               </div>`).join('')}
           </div>
         </div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:16px">
-        <div class="stat-card" style="flex:1;margin:0"><div class="stat-icon-wrap stat-icon-yellow">⏳</div><div class="stat-info"><div class="stat-value stat-value-yellow">${pending.length}</div><div class="stat-label">รอประเมินผล</div></div></div>
-        <div class="stat-card" style="flex:1;margin:0"><div class="stat-icon-wrap stat-icon-purple">%</div><div class="stat-info"><div class="stat-value stat-value-purple">${passRate}%</div><div class="stat-label">อัตราผ่านประเมิน</div></div></div>
+      <div class="card" style="margin:0">
+        <div class="card-header"><span class="card-title">แยกตามตำแหน่ง</span></div>
+        ${(()=>{
+          const allPos=Object.keys(POSITION_BY_GROUP).flatMap(g=>POSITION_BY_GROUP[g].map(pos=>({pos,color:grpHex[g]||'#9CA3AF',cnt:activeEmps.filter(e=>e.position===pos).length}))).filter(({cnt})=>cnt>0);
+          const maxC=Math.max(...allPos.map(x=>x.cnt),1);
+          return allPos.map(({pos,cnt,color})=>`
+            <div style="margin-bottom:9px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                <span style="font-size:11px;color:var(--text2)">${pos}</span>
+                <span style="font-size:11px;font-weight:700;color:${color}">${cnt} คน</span>
+              </div>
+              <div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden">
+                <div style="height:100%;width:${Math.round(cnt/maxC*100)}%;background:${color};border-radius:4px"></div>
+              </div>
+            </div>`).join('');
+        })()}
+      </div>
+      <div class="card" style="margin:0">
+        <div class="card-header"><span class="card-title">แยกตามอายุงาน</span></div>
+        ${(()=>{
+          const bk=[['น้อยกว่า 3 เดือน',0,3,'#9CA3AF'],['3 – 6 เดือน',3,6,'#F59E0B'],['6 – 12 เดือน',6,12,'#3B82F6'],['1 – 2 ปี',12,24,'#22C55E'],['มากกว่า 2 ปี',24,9999,'#8B5CF6']];
+          const gm=e=>{
+            if(!e.startDate) return -1;
+            const s=new Date(e.startDate); if(isNaN(s)) return -1;
+            const n=new Date(new Date().getTime()+7*60*60*1000);
+            let y=n.getFullYear()-s.getFullYear(), mo=n.getMonth()-s.getMonth();
+            if(n.getDate()<s.getDate()) mo--;
+            if(mo<0){y--;mo+=12;} return y*12+mo;
+          };
+          const counts=bk.map(([,mn,mx])=>activeEmps.filter(e=>{const m=gm(e);return m>=mn&&m<mx;}).length);
+          const maxC=Math.max(...counts,1);
+          return bk.map(([lbl,,,col],i)=>`
+            <div style="margin-bottom:11px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <span style="font-size:11px;color:var(--text2)">${lbl}</span>
+                <span style="font-size:12px;font-weight:700;color:${col}">${counts[i]}<span style="font-size:10px;font-weight:400;color:var(--text3)"> คน</span></span>
+              </div>
+              <div style="height:10px;background:var(--surface2);border-radius:5px;overflow:hidden;position:relative">
+                <div style="height:100%;width:${Math.round(counts[i]/maxC*100)}%;background:${col};border-radius:5px"></div>
+                ${counts[i]&&Math.round(counts[i]/maxC*100)>18?`<span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:8px;color:white;font-weight:700">${totalActive?Math.round(counts[i]/totalActive*100):0}%</span>`:''}
+              </div>
+            </div>`).join('');
+        })()}
       </div>
     </div>
     <div class="grid-2" style="align-items:start">
@@ -2927,68 +2974,6 @@ function renderDashboard() {
             </div>
           </div>`;
         }).join('')||'<p class="text-muted">ยังไม่มีบันทึกการสอน</p>'}
-      </div>
-    </div>
-    <div class="card" style="margin-top:16px">
-      <div class="card-header"><span class="card-title">ข้อมูลพนักงานทั้งหมด</span><span style="font-size:12px;color:var(--text3)">รวม ${emps.length} คน · กำลังทำงาน ${activeEmps.length} คน</span></div>
-      <div class="grid-2" style="gap:16px;margin-top:4px">
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">แยกตามประเภท</div>
-          ${Object.keys(POSITION_BY_GROUP).map(g=>{
-            const color=grpHex[g]||'#9CA3AF';
-            const activeCount=(empsByGroup[g]||[]).length;
-            const resigned=emps.filter(e=>getPositionGroup(e.position)===g).length-activeCount;
-            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin-bottom:6px;border-radius:8px;border-left:4px solid ${color};background:${color}08">
-              <span style="font-size:12px;font-weight:600;color:${color}">${g}</span>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:15px;font-weight:700;color:${color}">${activeCount} <span style="font-size:10px;font-weight:400;color:var(--text3)">คน</span></span>
-                ${resigned?`<span style="font-size:10px;color:var(--red);background:var(--red-light);padding:1px 6px;border-radius:10px">ลาออก ${resigned}</span>`:''}
-              </div>
-            </div>`;
-          }).join('')}
-          <div style="font-size:12px;font-weight:700;color:var(--text2);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.5px">แยกตามตำแหน่ง</div>
-          <div style="display:flex;flex-direction:column;gap:2px">
-            ${Object.keys(POSITION_BY_GROUP).flatMap(g=>{
-              const color=grpHex[g]||'#9CA3AF';
-              return POSITION_BY_GROUP[g].map(pos=>{
-                const cnt=activeEmps.filter(e=>e.position===pos).length;
-                if(!cnt) return '';
-                return `<div style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px">
-                  <div style="width:3px;height:100%;min-height:16px;background:${color};border-radius:2px;flex-shrink:0"></div>
-                  <span style="font-size:12px;flex:1;color:var(--text)">${pos}</span>
-                  <span style="font-size:12px;font-weight:700;color:${color}">${cnt} คน</span>
-                </div>`;
-              });
-            }).join('')}
-          </div>
-        </div>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">แยกตามอายุงาน</div>
-          ${(()=>{
-            const brackets=[['น้อยกว่า 3 เดือน',0,3],['3 – 6 เดือน',3,6],['6 – 12 เดือน',6,12],['1 – 2 ปี',12,24],['มากกว่า 2 ปี',24,9999]];
-            const bColors=['#9CA3AF','#F59E0B','#3B82F6','#22C55E','#8B5CF6'];
-            const counts=brackets.map(([,mn,mx])=>activeEmps.filter(e=>{
-              if(!e.startDate) return false;
-              const start=new Date(e.startDate); if(isNaN(start)) return false;
-              const now=new Date(new Date().getTime()+7*60*60*1000);
-              let y=now.getFullYear()-start.getFullYear(), mo=now.getMonth()-start.getMonth();
-              if(now.getDate()<start.getDate()) mo--;
-              if(mo<0){y--;mo+=12;}
-              const tm=y*12+mo; return tm>=mn&&tm<mx;
-            }).length);
-            const maxCount=Math.max(...counts,1);
-            return counts.map((cnt,i)=>`
-            <div style="margin-bottom:10px">
-              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-                <span style="font-size:12px;color:var(--text2)">${brackets[i][0]}</span>
-                <span style="font-size:12px;font-weight:700;color:${bColors[i]}">${cnt} คน</span>
-              </div>
-              <div style="height:10px;background:var(--surface2);border-radius:5px;overflow:hidden">
-                <div style="height:100%;width:${Math.round(cnt/maxCount*100)}%;background:${bColors[i]};border-radius:5px"></div>
-              </div>
-            </div>`).join('');
-          })()}
-        </div>
       </div>
     </div>
     <div class="card" style="margin-top:16px">
