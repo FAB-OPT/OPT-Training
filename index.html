@@ -2802,7 +2802,7 @@ function renderDashboard() {
   <div class="page-header"><div class="page-header-left"><div class="page-title">แดชบอร์ด</div><div class="page-sub">ภาพรวมการสอนงานของสาขา · อัปเดต ${fmtDate(new Date().toISOString())}</div></div></div>
   ${(()=>{
     const activeEmps = emps.filter(e=>e.status==='active');
-    const grpBadge = {'พนักงานบริการ':'badge-blue','พนักงานครัว':'badge-orange','ทีมผู้จัดการสาขา':'badge-purple'};
+    const grpBadge = {'พนักงานบริการ':'badge-green','พนักงานครัว':'badge-red','ทีมผู้จัดการสาขา':'badge-blue'};
     const empsByGroup = {};
     activeEmps.forEach(e=>{const g=getPositionGroup(e.position);if(!empsByGroup[g])empsByGroup[g]=[];empsByGroup[g].push(e);});
 
@@ -2820,7 +2820,7 @@ function renderDashboard() {
       });
     });
 
-    const grpHex = {'พนักงานบริการ':'#3B82F6','พนักงานครัว':'#F97316','ทีมผู้จัดการสาขา':'#8B5CF6'};
+    const grpHex = {'พนักงานบริการ':'#22C55E','พนักงานครัว':'#EF4444','ทีมผู้จัดการสาขา':'#3B82F6'};
     const totalActive = activeEmps.length;
     const pieGroups = Object.keys(POSITION_BY_GROUP).map(g=>({g, n:(empsByGroup[g]||[]).length, color:grpHex[g]||'#9CA3AF'}));
     let cumAngle = -Math.PI/2;
@@ -2862,9 +2862,9 @@ function renderDashboard() {
         <div class="stat-card" style="flex:1;margin:0"><div class="stat-icon-wrap stat-icon-purple">%</div><div class="stat-info"><div class="stat-value stat-value-purple">${passRate}%</div><div class="stat-label">อัตราผ่านประเมิน</div></div></div>
       </div>
     </div>
-    <div class="grid-2">
+    <div class="grid-2" style="align-items:start">
       <div class="card">
-        <div class="card-header"><span class="card-title">สรุปตามประเภทและตำแหน่ง</span></div>
+        <div class="card-header"><span class="card-title">สรุปตามประเภทและตำแหน่ง</span><span style="font-size:11px;color:var(--text3)">กดแถวเพื่อดูรายชื่อ</span></div>
         <div class="table-wrap"><table>
           <thead><tr><th>ประเภท</th><th>ตำแหน่ง</th><th>ครั้งที่สอน</th><th>ประเมิน</th><th>ผ่าน</th><th>อัตรา</th></tr></thead>
           <tbody>${Object.keys(POSITION_BY_GROUP).map(g=>{
@@ -2872,7 +2872,7 @@ function renderDashboard() {
             const gRate=gs.evaled?Math.round(gs.passed/gs.evaled*100):null;
             const color=grpHex[g]||'#9CA3AF';
             const posEntries=Object.entries(byPos).filter(([,s])=>s.group===g);
-            return `<tr style="background:${color}12">
+            return `<tr style="background:${color}12;cursor:pointer" onclick="showEmpGroupModal('${bid}','${g.replace(/'/g,"\\'")}')">
               <td colspan="2"><span class="badge ${grpBadge[g]||'badge-gray'}" style="font-size:11px">${g}</span><span style="font-size:11px;color:var(--text3);margin-left:6px">รวม</span></td>
               <td style="text-align:center;font-weight:700">${gs.trained}</td>
               <td style="text-align:center">${gs.evaled}</td>
@@ -2880,7 +2880,7 @@ function renderDashboard() {
               <td>${gRate!==null?`<span class="badge ${gRate>=80?'badge-green':gRate>=50?'badge-yellow':'badge-red'}">${gRate}%</span>`:'—'}</td>
             </tr>${posEntries.map(([p,s])=>{
               const rate=s.evaled?Math.round(s.passed/s.evaled*100):null;
-              return `<tr>
+              return `<tr style="cursor:pointer" onclick="showEmpPositionModal('${bid}','${p.replace(/'/g,"\\'")}')">
                 <td style="border-left:3px solid ${color};width:4px;padding:0"></td>
                 <td style="font-size:12px;color:var(--text2);padding-left:10px">${p}</td>
                 <td style="text-align:center;font-size:12px">${s.trained}</td>
@@ -2893,13 +2893,102 @@ function renderDashboard() {
         </table></div>
       </div>
       <div class="card">
-        <div class="card-header"><span class="card-title">ความคืบหน้าตาม Module</span></div>
+        <div class="card-header"><span class="card-title">สรุปการสอนตาม Module</span></div>
         ${Object.entries(MODULES).map(([id,m])=>{
-          const done=trains.filter(t=>t.moduleId===id&&t.eval).length;
-          const total=trains.filter(t=>t.moduleId===id).length;
-          if(!total) return '';
-          return `<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:13px;font-weight:600;color:var(--text)">${m.name}</span><span style="font-size:11px;font-weight:700;color:var(--text2)">${done}/${total}</span></div><div class="progress-bar"><div class="progress-fill progress-blue" style="width:${total?Math.round(done/total*100):0}%"></div></div></div>`;
+          const mt=trains.filter(t=>t.moduleId===id);
+          const total=mt.length, ev=mt.filter(t=>t.eval).length, ps=mt.filter(t=>t.eval&&isEvalPass(t.eval.result)).length;
+          const pr=ev?Math.round(ps/ev*100):0;
+          const isService=m.group==='Service';
+          const mColor=isService?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
+          const mBadge=isService?grpBadge['พนักงานบริการ']:grpBadge['พนักงานครัว'];
+          const mLabel=isService?'บริการ':'ครัว';
+          const ref=Math.max(total,1);
+          return `<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:4px">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:12.5px;font-weight:700">${m.name}</span>
+                <span class="badge ${mBadge}" style="font-size:10px">${mLabel}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px">
+                <span style="color:var(--text3)">สอน <b>${total}</b> · ประเมิน <b>${ev}</b> · ผ่าน <b style="color:var(--green)">${ps}</b></span>
+                ${ev?`<span class="badge ${pr>=80?'badge-green':pr>=50?'badge-yellow':'badge-red'}" style="font-size:10px">${pr}%</span>`:''}
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:8px">
+              ${[['สอน',total,'#64748B'],['ประเมิน',ev,'#F59E0B'],['ผ่าน',ps,'#22C55E']].map(([lbl,val,col])=>`
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:10px;color:var(--text3);width:44px;flex-shrink:0">${lbl}</span>
+                <div style="flex:1;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden"><div style="height:100%;width:${Math.round(val/ref*100)}%;background:${col};border-radius:4px"></div></div>
+                <span style="font-size:10px;font-weight:700;width:18px;text-align:right">${val}</span>
+              </div>`).join('')}
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+              ${(m.subtopics||[]).map(s=>`<span style="font-size:10px;background:var(--surface2);color:var(--text2);padding:2px 7px;border-radius:10px">${s}</span>`).join('')}
+            </div>
+          </div>`;
         }).join('')||'<p class="text-muted">ยังไม่มีบันทึกการสอน</p>'}
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><span class="card-title">ข้อมูลพนักงานทั้งหมด</span><span style="font-size:12px;color:var(--text3)">รวม ${emps.length} คน · กำลังทำงาน ${activeEmps.length} คน</span></div>
+      <div class="grid-2" style="gap:16px;margin-top:4px">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">แยกตามประเภท</div>
+          ${Object.keys(POSITION_BY_GROUP).map(g=>{
+            const color=grpHex[g]||'#9CA3AF';
+            const activeCount=(empsByGroup[g]||[]).length;
+            const resigned=emps.filter(e=>getPositionGroup(e.position)===g).length-activeCount;
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin-bottom:6px;border-radius:8px;border-left:4px solid ${color};background:${color}08">
+              <span style="font-size:12px;font-weight:600;color:${color}">${g}</span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:15px;font-weight:700;color:${color}">${activeCount} <span style="font-size:10px;font-weight:400;color:var(--text3)">คน</span></span>
+                ${resigned?`<span style="font-size:10px;color:var(--red);background:var(--red-light);padding:1px 6px;border-radius:10px">ลาออก ${resigned}</span>`:''}
+              </div>
+            </div>`;
+          }).join('')}
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.5px">แยกตามตำแหน่ง</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            ${Object.keys(POSITION_BY_GROUP).flatMap(g=>{
+              const color=grpHex[g]||'#9CA3AF';
+              return POSITION_BY_GROUP[g].map(pos=>{
+                const cnt=activeEmps.filter(e=>e.position===pos).length;
+                if(!cnt) return '';
+                return `<div style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px">
+                  <div style="width:3px;height:100%;min-height:16px;background:${color};border-radius:2px;flex-shrink:0"></div>
+                  <span style="font-size:12px;flex:1;color:var(--text)">${pos}</span>
+                  <span style="font-size:12px;font-weight:700;color:${color}">${cnt} คน</span>
+                </div>`;
+              });
+            }).join('')}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">แยกตามอายุงาน</div>
+          ${(()=>{
+            const brackets=[['น้อยกว่า 3 เดือน',0,3],['3 – 6 เดือน',3,6],['6 – 12 เดือน',6,12],['1 – 2 ปี',12,24],['มากกว่า 2 ปี',24,9999]];
+            const bColors=['#9CA3AF','#F59E0B','#3B82F6','#22C55E','#8B5CF6'];
+            const counts=brackets.map(([,mn,mx])=>activeEmps.filter(e=>{
+              if(!e.startDate) return false;
+              const start=new Date(e.startDate); if(isNaN(start)) return false;
+              const now=new Date(new Date().getTime()+7*60*60*1000);
+              let y=now.getFullYear()-start.getFullYear(), mo=now.getMonth()-start.getMonth();
+              if(now.getDate()<start.getDate()) mo--;
+              if(mo<0){y--;mo+=12;}
+              const tm=y*12+mo; return tm>=mn&&tm<mx;
+            }).length);
+            const maxCount=Math.max(...counts,1);
+            return counts.map((cnt,i)=>`
+            <div style="margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                <span style="font-size:12px;color:var(--text2)">${brackets[i][0]}</span>
+                <span style="font-size:12px;font-weight:700;color:${bColors[i]}">${cnt} คน</span>
+              </div>
+              <div style="height:10px;background:var(--surface2);border-radius:5px;overflow:hidden">
+                <div style="height:100%;width:${Math.round(cnt/maxCount*100)}%;background:${bColors[i]};border-radius:5px"></div>
+              </div>
+            </div>`).join('');
+          })()}
+        </div>
       </div>
     </div>
     <div class="card" style="margin-top:16px">
@@ -2930,6 +3019,19 @@ function showEmpGroupModal(bid, group) {
     </table></div>`, null, 'ปิด');
 }
 
+function showEmpPositionModal(bid, pos) {
+  const es = getBranchEmployees(bid).filter(e=>e.status==='active'&&e.position===pos);
+  showModal(`${pos} (${es.length} คน)`, `
+    <div class="table-wrap"><table>
+      <thead><tr><th>รหัส</th><th>ชื่อ</th><th>อายุงาน</th></tr></thead>
+      <tbody>${es.length?es.map(e=>`<tr>
+        <td style="font-family:monospace;font-size:12px;color:var(--text2)">${e.empCode||'—'}</td>
+        <td style="font-weight:600">${e.name}</td>
+        <td><span style="font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:4px">${calcTenureShort(e.startDate)}</span></td>
+      </tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:24px">ไม่มีพนักงาน</td></tr>'}</tbody>
+    </table></div>`, null, 'ปิด');
+}
+
 // ==================== EMPLOYEES ====================
 function renderEmployees() {
   const bid = getBranchId(); const emps = getBranchEmployees(bid);
@@ -2947,7 +3049,7 @@ function renderEmployees() {
 }
 
 function renderEmpRows(emps) {
-  const grpHex = {'พนักงานบริการ':'#3B82F6','พนักงานครัว':'#F97316','ทีมผู้จัดการสาขา':'#8B5CF6'};
+  const grpHex = {'พนักงานบริการ':'#22C55E','พนักงานครัว':'#EF4444','ทีมผู้จัดการสาขา':'#3B82F6'};
   if(!emps.length) return '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:32px">ยังไม่มีรายชื่อพนักงาน</td></tr>';
   return emps.map(e=>{
     const grp = getPositionGroup(e.position);
