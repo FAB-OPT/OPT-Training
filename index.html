@@ -2799,18 +2799,12 @@ function renderDashboard() {
   return `
   <div class="topbar"><div class="topbar-title">สาขา ${bid} — ${b.name.replace(bid+' ','')}</div><div class="topbar-right-text">ผู้จัดการเขต: ${b.manager}</div></div>
   <div class="page-header"><div class="page-header-left"><div class="page-title">แดชบอร์ด</div><div class="page-sub">ภาพรวมการสอนงานของสาขา · อัปเดต ${fmtDate(new Date().toISOString())}</div></div></div>
-  <div class="stats-grid" style="grid-template-columns:repeat(2,1fr)">
-    <div class="stat-card"><div class="stat-icon-wrap stat-icon-yellow">⏳</div><div class="stat-info"><div class="stat-value stat-value-yellow">${pending.length}</div><div class="stat-label">รอประเมินผล</div></div></div>
-    <div class="stat-card"><div class="stat-icon-wrap stat-icon-purple">%</div><div class="stat-info"><div class="stat-value stat-value-purple">${passRate}%</div><div class="stat-label">อัตราผ่านประเมิน</div></div></div>
-  </div>
   ${(()=>{
     const activeEmps = emps.filter(e=>e.status==='active');
-    const grpColor = {'พนักงานบริการ':'stat-icon-blue','พนักงานครัว':'stat-icon-green','ทีมผู้จัดการสาขา':'stat-icon-purple'};
     const grpBadge = {'พนักงานบริการ':'badge-blue','พนักงานครัว':'badge-green','ทีมผู้จัดการสาขา':'badge-navy'};
     const empsByGroup = {};
     activeEmps.forEach(e=>{const g=getPositionGroup(e.position);if(!empsByGroup[g])empsByGroup[g]=[];empsByGroup[g].push(e);});
 
-    // Training/eval stats per (trainee, training) pair
     const byGroup={}, byPos={};
     trains.forEach(t=>{
       (t.traineeIds||[]).forEach(tid=>{
@@ -2827,7 +2821,6 @@ function renderDashboard() {
 
     const grpHex = {'พนักงานบริการ':'#3B82F6','พนักงานครัว':'#22C55E','ทีมผู้จัดการสาขา':'#6366F1'};
     const totalActive = activeEmps.length;
-    // Build SVG pie chart
     const pieGroups = Object.keys(POSITION_BY_GROUP).map(g=>({g, n:(empsByGroup[g]||[]).length, color:grpHex[g]||'#9CA3AF'}));
     let cumAngle = -Math.PI/2;
     const cx=80, cy=80, r=70;
@@ -2842,23 +2835,29 @@ function renderDashboard() {
     }).join('');
 
     return `
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">พนักงานแยกตามประเภท</span><span style="font-size:12px;color:var(--text3)">รวม ${totalActive} คน (กำลังทำงาน) · กดกราฟหรือรายการเพื่อดูรายชื่อ</span></div>
-      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
-        <svg width="160" height="160" viewBox="0 0 160 160">${totalActive?slices:`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#E5E7EB"/>`}${totalActive?`<circle cx="${cx}" cy="${cy}" r="38" fill="white"/><text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="22" font-weight="700" fill="#1C1C1E">${totalActive}</text><text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="11" fill="#6B7280">คน</text>`:''}</svg>
-        <div style="flex:1;min-width:180px">
-          ${pieGroups.map(({g,n,color})=>`
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin-bottom:8px;border-radius:8px;background:var(--surface2);cursor:pointer;border:1.5px solid ${color}20" onclick="showEmpGroupModal('${bid}','${g}')">
-              <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:12px;height:12px;border-radius:50%;background:${color};flex-shrink:0"></div>
-                <span style="font-size:13px;font-weight:600">${g}</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:18px;font-weight:700;color:${color}">${n}</span>
-                <span style="font-size:11px;color:var(--text3)">${totalActive?Math.round(n/totalActive*100):0}%</span>
-              </div>
-            </div>`).join('')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;align-items:stretch">
+      <div class="card" style="margin-bottom:0">
+        <div class="card-header"><span class="card-title">พนักงานแยกตามประเภท</span><span style="font-size:11px;color:var(--text3)">รวม ${totalActive} คน · กดเพื่อดูรายชื่อ</span></div>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <svg width="140" height="140" viewBox="0 0 160 160">${totalActive?slices:`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#E5E7EB"/>`}${totalActive?`<circle cx="${cx}" cy="${cy}" r="38" fill="white"/><text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="22" font-weight="700" fill="#1C1C1E">${totalActive}</text><text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="11" fill="#6B7280">คน</text>`:''}</svg>
+          <div style="flex:1;min-width:140px">
+            ${pieGroups.map(({g,n,color})=>`
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;margin-bottom:6px;border-radius:8px;background:var(--surface2);cursor:pointer;border:1.5px solid ${color}20" onclick="showEmpGroupModal('${bid}','${g}')">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></div>
+                  <span style="font-size:12px;font-weight:600">${g}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <span style="font-size:17px;font-weight:700;color:${color}">${n}</span>
+                  <span style="font-size:11px;color:var(--text3)">${totalActive?Math.round(n/totalActive*100):0}%</span>
+                </div>
+              </div>`).join('')}
+          </div>
         </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="stat-card" style="flex:1;margin:0"><div class="stat-icon-wrap stat-icon-yellow">⏳</div><div class="stat-info"><div class="stat-value stat-value-yellow">${pending.length}</div><div class="stat-label">รอประเมินผล</div></div></div>
+        <div class="stat-card" style="flex:1;margin:0"><div class="stat-icon-wrap stat-icon-purple">%</div><div class="stat-info"><div class="stat-value stat-value-purple">${passRate}%</div><div class="stat-label">อัตราผ่านประเมิน</div></div></div>
       </div>
     </div>
     <div class="grid-2">
@@ -3073,9 +3072,9 @@ function renderTrainings() {
 
 function getPositionGroup(posName) {
   const p = (posName||'').toLowerCase();
-  if (p.startsWith('service')) return 'Service';
-  if (p.startsWith('cook')) return 'Cook';
-  return 'Both'; // Shift Supervisor, AM, GM → เห็นทุก Module
+  if (p.startsWith('service')) return 'พนักงานบริการ';
+  if (p.startsWith('cook')) return 'พนักงานครัว';
+  return 'ทีมผู้จัดการสาขา';
 }
 
 function openAddTraining() {
@@ -3273,10 +3272,13 @@ function updateModulesByTrainees() {
   }
 
   const groups = new Set(_selectedEmps.map(e => getPositionGroup(e.position)));
+  const hasService = groups.has('พนักงานบริการ');
+  const hasCook = groups.has('พนักงานครัว');
+  const hasMgr = groups.has('ทีมผู้จัดการสาขา');
   let allowedGroup;
-  if (groups.has('Both') || (groups.has('Service') && groups.has('Cook'))) {
+  if ((hasService && hasCook) || hasMgr || (hasService && hasMgr) || (hasCook && hasMgr)) {
     allowedGroup = 'Both';
-  } else if (groups.has('Service')) {
+  } else if (hasService) {
     allowedGroup = 'Service';
   } else {
     allowedGroup = 'Cook';
