@@ -1139,6 +1139,17 @@ const MODULES = {
   }
 };
 
+const POSITION_GROUPS = {
+  'Service Basic P/T':'พนักงานบริการ','Service Basic':'พนักงานบริการ',
+  'Service Silver P/T':'พนักงานบริการ','Service Silver':'พนักงานบริการ',
+  'Service Gold P/T':'พนักงานบริการ','Service Gold':'พนักงานบริการ',
+  'Cook Basic P/T':'พนักงานครัว','Cook Basic':'พนักงานครัว',
+  'Cook Silver P/T':'พนักงานครัว','Cook Silver':'พนักงานครัว',
+  'Cook Gold P/T':'พนักงานครัว','Cook Gold':'พนักงานครัว',
+  'Shift Supervisor':'ทีมผู้จัดการสาขา','Assistant Manager':'ทีมผู้จัดการสาขา',
+  'Senior Assistant Manager':'ทีมผู้จัดการสาขา','Restaurant General Manager':'ทีมผู้จัดการสาขา',
+};
+function getPositionGroup(pos) { return POSITION_GROUPS[pos] || 'อื่นๆ'; }
 const EVAL_METHODS = ['A = สังเกตการณ์', 'B = สัมภาษณ์', 'C = ตรวจงาน', 'D = การทดสอบ'];
 const EVAL_RESULTS = [
   { value: '1', label: '1 = ยังทำไม่ได้ตามมาตรฐาน (0-49%)', badge: 'badge-red' },
@@ -2398,7 +2409,17 @@ function gsSave(collection, id, record) { gsPost({action:'save', collection, id,
 function gsDel(collection, id) { gsPost({action:'delete', collection, id}); }
 function gsSaveMany(collection, records) { gsPost({action:'save_many', collection, records}); }
 function mkEmployee(bid, name, pos, start, status) {
-  return {id:genId('E'), branchId:bid, name, position:pos, startDate:start, status};
+  return {id:genId('E'), branchId:bid, name, position:pos, positionGroup:getPositionGroup(pos), startDate:start, status};
+}
+function positionSelectOptions(selected='') {
+  const groups = {
+    'พนักงานบริการ':['Service Basic P/T','Service Basic','Service Silver P/T','Service Silver','Service Gold P/T','Service Gold'],
+    'พนักงานครัว':['Cook Basic P/T','Cook Basic','Cook Silver P/T','Cook Silver','Cook Gold P/T','Cook Gold'],
+    'ทีมผู้จัดการสาขา':['Shift Supervisor','Assistant Manager','Senior Assistant Manager','Restaurant General Manager'],
+  };
+  return `<option value="">-- เลือกตำแหน่ง --</option>`+Object.entries(groups).map(([g,ps])=>
+    `<optgroup label="${g}">${ps.map(p=>`<option value="${p}"${p===selected?' selected':''}>${p}</option>`).join('')}</optgroup>`
+  ).join('');
 }
 
 
@@ -2801,6 +2822,34 @@ function renderDashboard() {
           <div style="font-size:12px;color:var(--text3);margin-top:3px">${fmtDateTime(t.date)} · ${(t.traineeIds||[]).length} คน</div>
         </div>`).join('')}
     </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-header"><span class="card-title">พนักงานแยกตามประเภทและตำแหน่ง</span></div>
+    ${(()=>{
+      const groups = {};
+      emps.filter(e=>e.status==='active').forEach(e=>{
+        const g = getPositionGroup(e.position);
+        if(!groups[g]) groups[g]=[];
+        groups[g].push(e);
+      });
+      const grpColor = {'พนักงานบริการ':'badge-blue','พนักงานครัว':'badge-green','ทีมผู้จัดการสาขา':'badge-navy'};
+      if(!Object.keys(groups).length) return '<p class="text-muted">ยังไม่มีพนักงาน</p>';
+      return Object.entries(groups).map(([g,es])=>`
+        <div style="margin-bottom:18px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span class="badge ${grpColor[g]||'badge-gray'}">${g}</span>
+            <span style="font-size:13px;font-weight:700;color:var(--text)">${es.length} คน</span>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>ชื่อ</th><th>ตำแหน่ง</th><th>อายุงาน</th></tr></thead>
+            <tbody>${es.map(e=>`<tr>
+              <td style="font-size:13px">${e.name}</td>
+              <td style="font-size:12px;color:var(--text2)">${e.position}</td>
+              <td><span style="font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:4px">${calcTenureShort(e.startDate)}</span></td>
+            </tr>`).join('')}</tbody>
+          </table></div>
+        </div>`).join('');
+    })()}
   </div>`;
 }
 
@@ -2814,23 +2863,27 @@ function renderEmployees() {
   <div class="card">
     <div class="search-bar"><input class="search-input" id="emp-search" placeholder="ค้นหาชื่อ / ตำแหน่ง..." oninput="filterEmployees()"></div>
     <div class="table-wrap"><table>
-      <thead><tr><th>รหัสพนักงาน</th><th>ชื่อ - นามสกุล</th><th>ตำแหน่ง</th><th>วันเริ่มงาน</th><th>อายุงาน</th><th>สถานะ</th><th style="text-align:right">จัดการ</th></tr></thead>
+      <thead><tr><th>รหัสพนักงาน</th><th>ชื่อ - นามสกุล</th><th>ประเภท</th><th>ตำแหน่ง</th><th>วันเริ่มงาน</th><th>อายุงาน</th><th>สถานะ</th><th style="text-align:right">จัดการ</th></tr></thead>
       <tbody id="emp-tbody">${renderEmpRows(emps)}</tbody>
     </table></div>
   </div>`;
 }
 
 function renderEmpRows(emps) {
-  if(!emps.length) return '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">ยังไม่มีรายชื่อพนักงาน</td></tr>';
-  return emps.map(e=>`<tr>
+  if(!emps.length) return '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:32px">ยังไม่มีรายชื่อพนักงาน</td></tr>';
+  return emps.map(e=>{
+    const grp = getPositionGroup(e.position);
+    const grpBadge = grp==='พนักงานบริการ'?'badge-blue':grp==='พนักงานครัว'?'badge-green':'badge-navy';
+    return `<tr>
     <td style="font-family:monospace;font-size:12px;color:var(--text2)">${e.empCode||'—'}</td>
     <td><strong>${e.name}</strong></td>
+    <td><span class="badge ${grpBadge}" style="font-size:11px">${grp}</span></td>
     <td style="font-size:12.5px;color:var(--text2)">${e.position}</td>
     <td style="font-size:12.5px">${fmtDate(e.startDate)||'—'}</td>
     <td><span style="font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:3px 9px;border-radius:4px">${calcTenureShort(e.startDate)}</span></td>
     <td><span class="badge ${e.status==='active'?'badge-green':'badge-red'}">${e.status==='active'?'กำลังทำงาน':'ลาออก'}</span></td>
     <td style="text-align:right"><button class="btn btn-sm btn-outline" onclick="openEditEmployee('${e.id}')">แก้ไข</button></td>
-  </tr>`).join('');
+  </tr>`;}).join('');
 }
 
 function filterEmployees() {
@@ -2844,24 +2897,9 @@ function openAddEmployee() {
     <div class="form-row">
       <div><label class="form-label">รหัสพนักงาน <span class="req">*</span></label><input class="form-input" id="emp-code" placeholder="เช่น 267032"></div>
       <div><label class="form-label">ชื่อ - นามสกุล <span class="req">*</span></label><input class="form-input" id="emp-name" placeholder="กรอกชื่อ นามสกุล"></div>
-      <div><label class="form-label">ตำแหน่ง <span class="req">*</span></label><select class="form-select" id="emp-pos"><option value="">-- เลือกตำแหน่ง --</option><option value="Service Basic P/T">Service Basic P/T</option>
-<option value="Service Basic">Service Basic</option>
-<option value="Service Silver P/T">Service Silver P/T</option>
-<option value="Service Silver">Service Silver</option>
-<option value="Service Gold P/T">Service Gold P/T</option>
-<option value="Service Gold">Service Gold</option>
-<option value="Cook Basic P/T">Cook Basic P/T</option>
-<option value="Cook Basic">Cook Basic</option>
-<option value="Cook Silver P/T">Cook Silver P/T</option>
-<option value="Cook Silver">Cook Silver</option>
-<option value="Cook Gold P/T">Cook Gold P/T</option>
-<option value="Cook Gold">Cook Gold</option>
-<option value="Shift Supervisor">Shift Supervisor</option>
-<option value="Assistant Manager">Assistant Manager</option>
-<option value="Senior Assistant Manager">Senior Assistant Manager</option>
-<option value="Restaurant General Manager">Restaurant General Manager</option></select></div>
     </div>
     <div class="form-row">
+      <div><label class="form-label">ตำแหน่ง <span class="req">*</span></label><select class="form-select" id="emp-pos">${positionSelectOptions()}</select></div>
       <div><label class="form-label">วันเริ่มงาน <span class="req">*</span></label><input class="form-input" type="date" id="emp-start"></div>
       <div><label class="form-label">สถานะ <span class="req">*</span></label><select class="form-select" id="emp-status"><option value="active">กำลังทำงาน</option><option value="resigned">ลาออก</option></select></div>
     </div>`, () => {
@@ -2885,22 +2923,7 @@ function openEditEmployee(id) {
   showModal('แก้ไขข้อมูลพนักงาน', `
     <div class="form-row">
       <div><label class="form-label">ชื่อ - นามสกุล</label><input class="form-input" id="emp-name" value="${e.name}"></div>
-      <div><label class="form-label">ตำแหน่ง</label><select class="form-select" id="emp-pos"><option value="">-- เลือกตำแหน่ง --</option><option value="Service Basic P/T" ${e.position==="Service Basic P/T"?"selected":""}>Service Basic P/T</option>
-<option value="Service Basic" ${e.position==="Service Basic"?"selected":""}>Service Basic</option>
-<option value="Service Silver P/T" ${e.position==="Service Silver P/T"?"selected":""}>Service Silver P/T</option>
-<option value="Service Silver" ${e.position==="Service Silver"?"selected":""}>Service Silver</option>
-<option value="Service Gold P/T" ${e.position==="Service Gold P/T"?"selected":""}>Service Gold P/T</option>
-<option value="Service Gold" ${e.position==="Service Gold"?"selected":""}>Service Gold</option>
-<option value="Cook Basic P/T" ${e.position==="Cook Basic P/T"?"selected":""}>Cook Basic P/T</option>
-<option value="Cook Basic" ${e.position==="Cook Basic"?"selected":""}>Cook Basic</option>
-<option value="Cook Silver P/T" ${e.position==="Cook Silver P/T"?"selected":""}>Cook Silver P/T</option>
-<option value="Cook Silver" ${e.position==="Cook Silver"?"selected":""}>Cook Silver</option>
-<option value="Cook Gold P/T" ${e.position==="Cook Gold P/T"?"selected":""}>Cook Gold P/T</option>
-<option value="Cook Gold" ${e.position==="Cook Gold"?"selected":""}>Cook Gold</option>
-<option value="Shift Supervisor" ${e.position==="Shift Supervisor"?"selected":""}>Shift Supervisor</option>
-<option value="Assistant Manager" ${e.position==="Assistant Manager"?"selected":""}>Assistant Manager</option>
-<option value="Senior Assistant Manager" ${e.position==="Senior Assistant Manager"?"selected":""}>Senior Assistant Manager</option>
-<option value="Restaurant General Manager" ${e.position==="Restaurant General Manager"?"selected":""}>Restaurant General Manager</option></select></div>
+      <div><label class="form-label">ตำแหน่ง</label><select class="form-select" id="emp-pos">${positionSelectOptions(e.position)}</select></div>
     </div>
     <div class="form-row">
       <div><label class="form-label">วันเริ่มงาน</label><input class="form-input" type="date" id="emp-start" value="${e.startDate}"></div>
@@ -2908,8 +2931,10 @@ function openEditEmployee(id) {
     </div>`, () => {
     e.name=document.getElementById('emp-name').value.trim();
     e.position=document.getElementById('emp-pos').value.trim();
+    e.positionGroup=getPositionGroup(e.position);
     e.startDate=document.getElementById('emp-start').value;
     e.status=document.getElementById('emp-status').value;
+    gsSave('employees', e.id, e);
     closeModal(); showPage('employees'); notify('อัปเดตข้อมูลสำเร็จ');
   });
 }
@@ -2935,8 +2960,8 @@ function renderTrainings() {
         return `<tr>
           <td style="font-size:12.5px;white-space:nowrap">${fmtDateTime(t.date)}</td>
           <td style="font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name||t.moduleId}</td>
-          <td><span class="badge badge-navy">${t.subtopics.length} หัวข้อ</span></td>
-          <td style="font-size:12.5px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name).filter(Boolean).join(', ')||'—'}</td>
+          <td><span class="badge badge-navy">${t.subtopics.length}/${MODULES[t.moduleId]?.subtopics?.length||'?'} หัวข้อ</span></td>
+          <td style="font-size:12.5px">${(t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`${e.name}<span style="color:var(--text3);font-size:11px"> (${e.position})</span>`:null;}).filter(Boolean).join('<br>')||'—'}</td>
           <td style="font-size:12.5px">${t.trainerName}</td>
           <td>${badge}</td>
           <td style="white-space:nowrap">
@@ -3352,10 +3377,11 @@ function renderEvaluations() {
   <div class="card">
     <div class="card-header"><span class="card-title">ประวัติการประเมิน</span></div>
     ${done.length===0?'<p class="text-muted">ยังไม่มีประวัติการประเมิน</p>':`<div class="table-wrap"><table>
-      <thead><tr><th>วันที่สอน</th><th>Module</th><th>วิธีประเมิน</th><th>ผล</th><th>วันที่ประเมิน</th><th>หมายเหตุ</th></tr></thead>
+      <thead><tr><th>วันที่สอน</th><th>Module</th><th>พนักงาน</th><th>วิธีประเมิน</th><th>ผล</th><th>วันที่ประเมิน</th><th>หมายเหตุ</th></tr></thead>
       <tbody>${done.map(t=>`<tr>
         <td style="font-size:12.5px">${fmtDateTime(t.date)}</td>
         <td style="font-weight:700">${MODULES[t.moduleId]?.name}</td>
+        <td style="font-size:12px">${(t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`${e.name} <span style="color:var(--text3)">(${e.position})</span>`:null;}).filter(Boolean).join('<br>')||'—'}</td>
         <td style="font-size:12.5px">${t.eval.method}</td>
         <td><span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span></td>
         <td>${fmtDate(t.eval.evalDate)}</td>
@@ -3374,8 +3400,10 @@ function openEvalModal(trainingId) {
     <div style="background:var(--primary-light);border-radius:8px;padding:12px 14px;margin-bottom:16px;border:1px solid #F5C4A4">
       <div style="font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name}</div>
       <div style="font-size:12px;color:var(--text2);margin-top:3px">${fmtDateTime(t.date)} · ผู้สอน: ${t.trainerName}</div>
-      <div style="margin-top:8px;font-size:12px;color:var(--text2)">พนักงาน: ${(t.traineeIds||[]).map(id=>getEmployee(id)?.name).filter(Boolean).join(', ')||'—'}</div>
-      <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">${(t.subtopics||[]).map(s=>`<span class="badge badge-blue" style="font-size:11px">${s}</span>`).join('')}</div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text2)">
+        ${(t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`<div style="margin-bottom:2px"><strong>${e.name}</strong> · ${e.position} · อายุงาน ${calcTenureShort(e.startDate)}</div>`:null;}).filter(Boolean).join('')||'—'}
+      </div>
+      <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">${(t.subtopics||[]).map(s=>`<span class="badge badge-blue" style="font-size:11px">${s}</span>`).join('')}<span style="font-size:11px;color:var(--text3);align-self:center">${t.subtopics?.length||0}/${MODULES[t.moduleId]?.subtopics?.length||'?'} หัวข้อ</span></div>
     </div>
     <div class="form-full">
       <label class="form-label">วิธีการประเมินผล <span class="req">*</span></label>
