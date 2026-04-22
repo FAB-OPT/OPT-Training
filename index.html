@@ -2805,17 +2805,91 @@ function renderDashboard() {
     <div class="stat-card"><div class="stat-icon-wrap stat-icon-yellow">⏳</div><div class="stat-info"><div class="stat-value stat-value-yellow">${pending.length}</div><div class="stat-label">รอประเมินผล</div></div></div>
     <div class="stat-card"><div class="stat-icon-wrap stat-icon-purple">%</div><div class="stat-info"><div class="stat-value stat-value-purple">${passRate}%</div><div class="stat-label">อัตราผ่านประเมิน</div></div></div>
   </div>
-  <div class="grid-2">
-    <div class="card">
-      <div class="card-header"><span class="card-title">ความคืบหน้าตาม Module</span></div>
-      ${Object.entries(MODULES).map(([id,m])=>{
-        const done = trains.filter(t=>t.moduleId===id && t.eval).length;
-        const total = trains.filter(t=>t.moduleId===id).length;
-        if(!total) return '';
-        return `<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:13px;font-weight:600;color:var(--text)">${m.name}</span><span style="font-size:11px;font-weight:700;color:var(--text2)">${done}/${total}</span></div><div class="progress-bar"><div class="progress-fill progress-blue" style="width:${total?Math.round(done/total*100):0}%"></div></div></div>`;
-      }).join('') || '<p class="text-muted">ยังไม่มีบันทึกการสอน</p>'}
+  ${(()=>{
+    const activeEmps = emps.filter(e=>e.status==='active');
+    const grpColor = {'พนักงานบริการ':'stat-icon-blue','พนักงานครัว':'stat-icon-green','ทีมผู้จัดการสาขา':'stat-icon-purple'};
+    const grpBadge = {'พนักงานบริการ':'badge-blue','พนักงานครัว':'badge-green','ทีมผู้จัดการสาขา':'badge-navy'};
+    const empsByGroup = {};
+    activeEmps.forEach(e=>{const g=getPositionGroup(e.position);if(!empsByGroup[g])empsByGroup[g]=[];empsByGroup[g].push(e);});
+
+    // Training/eval stats per (trainee, training) pair
+    const byGroup={}, byPos={};
+    trains.forEach(t=>{
+      (t.traineeIds||[]).forEach(tid=>{
+        const e=getEmployee(tid); if(!e) return;
+        const g=getPositionGroup(e.position), p=e.position;
+        if(!byGroup[g]) byGroup[g]={trained:0,evaled:0,passed:0};
+        byGroup[g].trained++;
+        if(t.eval){byGroup[g].evaled++;if(isEvalPass(t.eval.result))byGroup[g].passed++;}
+        if(!byPos[p]) byPos[p]={group:g,trained:0,evaled:0,passed:0};
+        byPos[p].trained++;
+        if(t.eval){byPos[p].evaled++;if(isEvalPass(t.eval.result))byPos[p].passed++;}
+      });
+    });
+
+    return `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">พนักงานแยกตามประเภท</span><span style="font-size:12px;color:var(--text3)">กดการ์ดเพื่อดูรายชื่อ</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
+        ${Object.keys(POSITION_BY_GROUP).map(g=>{
+          const es=empsByGroup[g]||[];
+          return `<div class="stat-card" style="cursor:pointer;border:2px solid var(--border)" onclick="showEmpGroupModal('${bid}','${g}')">
+            <div class="stat-icon-wrap ${grpColor[g]||'stat-icon-blue'}">👤</div>
+            <div class="stat-info">
+              <div class="stat-value stat-value-blue" style="font-size:28px">${es.length}</div>
+              <div class="stat-label">${g}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
     </div>
-    <div class="card">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><span class="card-title">สรุปตามประเภทพนักงาน</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>ประเภท</th><th>ครั้งที่สอน</th><th>ประเมิน</th><th>ผ่าน</th><th>อัตรา</th></tr></thead>
+          <tbody>${Object.keys(POSITION_BY_GROUP).map(g=>{
+            const s=byGroup[g]||{trained:0,evaled:0,passed:0};
+            const rate=s.evaled?Math.round(s.passed/s.evaled*100):null;
+            return `<tr>
+              <td><span class="badge ${grpBadge[g]||'badge-gray'}" style="font-size:11px">${g}</span></td>
+              <td style="text-align:center;font-weight:700">${s.trained}</td>
+              <td style="text-align:center">${s.evaled}</td>
+              <td style="text-align:center;color:var(--green);font-weight:600">${s.passed}</td>
+              <td>${rate!==null?`<span class="badge ${rate>=80?'badge-green':rate>=50?'badge-yellow':'badge-red'}">${rate}%</span>`:'—'}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">ความคืบหน้าตาม Module</span></div>
+        ${Object.entries(MODULES).map(([id,m])=>{
+          const done=trains.filter(t=>t.moduleId===id&&t.eval).length;
+          const total=trains.filter(t=>t.moduleId===id).length;
+          if(!total) return '';
+          return `<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><span style="font-size:13px;font-weight:600;color:var(--text)">${m.name}</span><span style="font-size:11px;font-weight:700;color:var(--text2)">${done}/${total}</span></div><div class="progress-bar"><div class="progress-fill progress-blue" style="width:${total?Math.round(done/total*100):0}%"></div></div></div>`;
+        }).join('')||'<p class="text-muted">ยังไม่มีบันทึกการสอน</p>'}
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><span class="card-title">สรุปตามตำแหน่ง</span></div>
+      ${Object.keys(byPos).length===0?'<p class="text-muted">ยังไม่มีข้อมูล</p>':`
+      <div class="table-wrap"><table>
+        <thead><tr><th>ประเภท</th><th>ตำแหน่ง</th><th>ครั้งที่สอน</th><th>ประเมิน</th><th>ผ่าน</th><th>อัตรา</th></tr></thead>
+        <tbody>${Object.entries(byPos).sort((a,b)=>a[1].group.localeCompare(b[1].group)||a[0].localeCompare(b[0])).map(([p,s])=>{
+          const rate=s.evaled?Math.round(s.passed/s.evaled*100):null;
+          return `<tr>
+            <td><span class="badge ${grpBadge[s.group]||'badge-gray'}" style="font-size:10px">${s.group}</span></td>
+            <td style="font-size:12.5px;font-weight:600">${p}</td>
+            <td style="text-align:center;font-weight:700">${s.trained}</td>
+            <td style="text-align:center">${s.evaled}</td>
+            <td style="text-align:center;color:var(--green);font-weight:600">${s.passed}</td>
+            <td>${rate!==null?`<span class="badge ${rate>=80?'badge-green':rate>=50?'badge-yellow':'badge-red'}">${rate}%</span>`:'—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`}
+    </div>
+    <div class="card" style="margin-top:16px">
       <div class="card-header"><span class="card-title">บันทึกการสอนล่าสุด</span><button class="btn btn-sm btn-outline" onclick="showPage('trainings')">ดูทั้งหมด</button></div>
       ${trains.length===0?'<p class="text-muted">ยังไม่มีบันทึก</p>':trains.slice(-5).reverse().map(t=>`
         <div style="padding:10px 0;border-bottom:1px solid var(--border)">
@@ -2825,36 +2899,22 @@ function renderDashboard() {
           </div>
           <div style="font-size:12px;color:var(--text3);margin-top:3px">${fmtDateTime(t.date)} · ${(t.traineeIds||[]).length} คน</div>
         </div>`).join('')}
-    </div>
-  </div>
-  <div class="card" style="margin-top:16px">
-    <div class="card-header"><span class="card-title">พนักงานแยกตามประเภทและตำแหน่ง</span></div>
-    ${(()=>{
-      const groups = {};
-      emps.filter(e=>e.status==='active').forEach(e=>{
-        const g = getPositionGroup(e.position);
-        if(!groups[g]) groups[g]=[];
-        groups[g].push(e);
-      });
-      const grpColor = {'พนักงานบริการ':'badge-blue','พนักงานครัว':'badge-green','ทีมผู้จัดการสาขา':'badge-navy'};
-      if(!Object.keys(groups).length) return '<p class="text-muted">ยังไม่มีพนักงาน</p>';
-      return Object.entries(groups).map(([g,es])=>`
-        <div style="margin-bottom:18px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span class="badge ${grpColor[g]||'badge-gray'}">${g}</span>
-            <span style="font-size:13px;font-weight:700;color:var(--text)">${es.length} คน</span>
-          </div>
-          <div class="table-wrap"><table>
-            <thead><tr><th>ชื่อ</th><th>ตำแหน่ง</th><th>อายุงาน</th></tr></thead>
-            <tbody>${es.map(e=>`<tr>
-              <td style="font-size:13px">${e.name}</td>
-              <td style="font-size:12px;color:var(--text2)">${e.position}</td>
-              <td><span style="font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:4px">${calcTenureShort(e.startDate)}</span></td>
-            </tr>`).join('')}</tbody>
-          </table></div>
-        </div>`).join('');
-    })()}
-  </div>`;
+    </div>`;
+  })()}`;
+}
+
+function showEmpGroupModal(bid, group) {
+  const es = getBranchEmployees(bid).filter(e=>e.status==='active'&&getPositionGroup(e.position)===group);
+  showModal(`${group} (${es.length} คน)`, `
+    <div class="table-wrap"><table>
+      <thead><tr><th>รหัส</th><th>ชื่อ</th><th>ตำแหน่ง</th><th>อายุงาน</th></tr></thead>
+      <tbody>${es.length?es.map(e=>`<tr>
+        <td style="font-family:monospace;font-size:12px;color:var(--text2)">${e.empCode||'—'}</td>
+        <td style="font-weight:600">${e.name}</td>
+        <td style="font-size:12px;color:var(--text2)">${e.position}</td>
+        <td><span style="font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:4px">${calcTenureShort(e.startDate)}</span></td>
+      </tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:24px">ไม่มีพนักงาน</td></tr>'}</tbody>
+    </table></div>`, null, 'ปิด');
 }
 
 // ==================== EMPLOYEES ====================
@@ -3274,7 +3334,7 @@ function viewTraining(id) {
         <span class="badge ${getEvalResultBadge(t.eval.result)}" style="font-size:13px;padding:4px 12px">${getEvalResultLabel(t.eval.result)}</span>
         <span class="badge badge-blue">${t.eval.method}</span>
       </div>
-      <div style="font-size:12px;color:var(--text2)">วันที่ประเมิน: ${fmtDate(t.eval.evalDate)}</div>
+      <div style="font-size:12px;color:var(--text2)">วันที่/เวลาประเมิน: ${fmtDateTime(t.eval.evalDate)}</div>
       ${t.eval.note?`<div style="font-size:13px;margin-top:6px;color:var(--text)">${t.eval.note}</div>`:''}
     </div>` : isEvalDeadlinePassed(t.date) ? `<div class="warn-box">หมดระยะเวลาประเมิน (เกิน 7 วันแล้ว)</div>`
     : `<div class="info-box">รอการประเมิน · ต้องประเมินภายใน ${fmtDate(deadline.toISOString())}</div>`}
@@ -3417,7 +3477,7 @@ function renderEvaluations() {
         <td><span class="badge badge-navy" style="font-size:11px">${t.subtopics?.length||0}/${MODULES[t.moduleId]?.subtopics?.length||'?'}</span> <button class="btn btn-sm btn-outline" onclick="viewTrainingSubtopics('${t.id}')">ดู</button></td>
         <td style="font-size:12.5px">${t.eval.method}</td>
         <td><span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span></td>
-        <td>${fmtDate(t.eval.evalDate)}</td>
+        <td>${fmtDateTime(t.eval.evalDate)}</td>
         <td style="font-size:12px;color:var(--text2)">${t.eval.note||'—'}</td>
       </tr>`).join('')}
       </tbody>
@@ -3460,7 +3520,7 @@ function openEvalModal(trainingId) {
   `, () => {
     if(!selectedEvalMethod){notify('กรุณาเลือกวิธีการประเมิน','error');return;}
     if(!selectedEvalResult){notify('กรุณาเลือกผลการประเมิน','error');return;}
-    t.eval = {method:selectedEvalMethod,result:selectedEvalResult,evalDate:new Date().toISOString().split('T')[0],note:document.getElementById('eval-note').value};
+    t.eval = {method:selectedEvalMethod,result:selectedEvalResult,evalDate:new Date().toISOString(),note:document.getElementById('eval-note').value};
     gsSave('trainings', t.id, t);
     closeModal(); showPage('evaluations'); notify('บันทึกผลการประเมินสำเร็จ');
   }, 'บันทึกผล');
@@ -3549,7 +3609,7 @@ function exportReport(type) {
     html=`<h2>${titles[type]}</h2><div class="sub">สาขา: ${branchLabel} · วันที่: ${now}</div><table><tr><th>วันที่สอน</th><th>Module</th><th>หัวข้อย่อย</th><th>พนักงาน</th><th>ผู้สอน</th></tr>${trains.map(t=>`<tr><td>${fmtDateTime(t.date)}</td><td>${MODULES[t.moduleId]?.name}</td><td>${t.subtopics.join(', ')}</td><td>${(t.traineeIds||[]).map(id=>getEmployee(id)?.name||id).join(', ')}</td><td>${t.trainerName}</td></tr>`).join('')}</table>`;
   } else if(type==='evaluations'){
     const ev=trains.filter(t=>t.eval);
-    html=`<h2>${titles[type]}</h2><div class="sub">สาขา: ${branchLabel} · วันที่: ${now}</div><table><tr><th>วันที่สอน</th><th>Module</th><th>วิธีประเมิน</th><th>ผล</th><th>วันที่ประเมิน</th><th>หมายเหตุ</th></tr>${ev.map(t=>`<tr><td>${fmtDateTime(t.date)}</td><td>${MODULES[t.moduleId]?.name}</td><td>${t.eval.method}</td><td>${getEvalResultLabel(t.eval.result)}</td><td>${fmtDate(t.eval.evalDate)}</td><td>${t.eval.note||''}</td></tr>`).join('')}</table>`;
+    html=`<h2>${titles[type]}</h2><div class="sub">สาขา: ${branchLabel} · วันที่: ${now}</div><table><tr><th>วันที่สอน</th><th>Module</th><th>วิธีประเมิน</th><th>ผล</th><th>วันที่ประเมิน</th><th>หมายเหตุ</th></tr>${ev.map(t=>`<tr><td>${fmtDateTime(t.date)}</td><td>${MODULES[t.moduleId]?.name}</td><td>${t.eval.method}</td><td>${getEvalResultLabel(t.eval.result)}</td><td>${fmtDateTime(t.eval.evalDate)}</td><td>${t.eval.note||''}</td></tr>`).join('')}</table>`;
   }
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titles[type]}</title>${style}</head><body>${html}<div style="margin-top:24px" class="no-print"><button onclick="window.print()" style="padding:9px 20px;background:#1A3A5C;color:white;border:none;border-radius:6px;font-size:14px;cursor:pointer">🖨️ พิมพ์</button></div></body></html>`);
@@ -3612,7 +3672,7 @@ function renderAdminDashboard() {
       <thead><tr><th>สาขา</th><th>วันที่ประเมิน</th><th>Module</th><th>พนักงาน</th><th>วิธี</th><th>ผล</th></tr></thead>
       <tbody>${(()=>{const evRows=DB.trainings.filter(t=>t.eval).sort((a,b)=>b.eval.evalDate.localeCompare(a.eval.evalDate)).slice(0,10);return evRows.length?evRows.map(t=>`<tr>
         <td><span class="badge badge-navy">${t.branchId}</span></td>
-        <td style="font-size:12px">${fmtDate(t.eval.evalDate)}</td>
+        <td style="font-size:12px">${fmtDateTime(t.eval.evalDate)}</td>
         <td style="font-weight:700;color:var(--primary);font-size:12.5px">${MODULES[t.moduleId]?.name}</td>
         <td style="font-size:12px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name).filter(Boolean).join(', ')||'—'}</td>
         <td style="font-size:12px">${t.eval.method?.charAt(0)||'—'}</td>
@@ -3960,7 +4020,7 @@ function renderAdminEvalRows(rows) {
   if(!rows.length) return '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:32px">ไม่มีข้อมูลการประเมิน</td></tr>';
   return rows.sort((a,b)=>b.eval.evalDate.localeCompare(a.eval.evalDate)).map(t=>`<tr>
     <td><span class="badge badge-navy">${t.branchId}</span></td>
-    <td style="font-size:12px;white-space:nowrap">${fmtDate(t.eval.evalDate)}</td>
+    <td style="font-size:12px;white-space:nowrap">${fmtDateTime(t.eval.evalDate)}</td>
     <td style="font-weight:700;color:var(--primary);font-size:12.5px">${MODULES[t.moduleId]?.name||t.moduleId}</td>
     <td style="font-size:12px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name).filter(Boolean).join(', ')||'—'}</td>
     <td style="font-size:12px">${t.trainerName}</td>
