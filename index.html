@@ -2799,9 +2799,7 @@ function renderDashboard() {
   return `
   <div class="topbar"><div class="topbar-title">สาขา ${bid} — ${b.name.replace(bid+' ','')}</div><div class="topbar-right-text">ผู้จัดการเขต: ${b.manager}</div></div>
   <div class="page-header"><div class="page-header-left"><div class="page-title">แดชบอร์ด</div><div class="page-sub">ภาพรวมการสอนงานของสาขา · อัปเดต ${fmtDate(new Date().toISOString())}</div></div></div>
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-icon-wrap stat-icon-blue">👥</div><div class="stat-info"><div class="stat-value stat-value-blue">${emps.length}</div><div class="stat-label">พนักงานทั้งหมด</div></div></div>
-    <div class="stat-card"><div class="stat-icon-wrap stat-icon-green">✓</div><div class="stat-info"><div class="stat-value stat-value-green">${active}</div><div class="stat-label">กำลังทำงาน</div></div></div>
+  <div class="stats-grid" style="grid-template-columns:repeat(2,1fr)">
     <div class="stat-card"><div class="stat-icon-wrap stat-icon-yellow">⏳</div><div class="stat-info"><div class="stat-value stat-value-yellow">${pending.length}</div><div class="stat-label">รอประเมินผล</div></div></div>
     <div class="stat-card"><div class="stat-icon-wrap stat-icon-purple">%</div><div class="stat-info"><div class="stat-value stat-value-purple">${passRate}%</div><div class="stat-label">อัตราผ่านประเมิน</div></div></div>
   </div>
@@ -2827,20 +2825,40 @@ function renderDashboard() {
       });
     });
 
+    const grpHex = {'พนักงานบริการ':'#3B82F6','พนักงานครัว':'#22C55E','ทีมผู้จัดการสาขา':'#6366F1'};
+    const totalActive = activeEmps.length;
+    // Build SVG pie chart
+    const pieGroups = Object.keys(POSITION_BY_GROUP).map(g=>({g, n:(empsByGroup[g]||[]).length, color:grpHex[g]||'#9CA3AF'}));
+    let cumAngle = -Math.PI/2;
+    const cx=80, cy=80, r=70;
+    const slices = pieGroups.map(({g,n,color})=>{
+      if(!n||!totalActive) return '';
+      const angle = (n/totalActive)*2*Math.PI;
+      const x1=cx+r*Math.cos(cumAngle), y1=cy+r*Math.sin(cumAngle);
+      cumAngle+=angle;
+      const x2=cx+r*Math.cos(cumAngle), y2=cy+r*Math.sin(cumAngle);
+      const lg=angle>Math.PI?1:0;
+      return `<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${lg},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${color}" style="cursor:pointer" onclick="showEmpGroupModal('${bid}','${g.replace(/'/g,'\\\'')}')" title="${g}"/>`;
+    }).join('');
+
     return `
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">พนักงานแยกตามประเภท</span><span style="font-size:12px;color:var(--text3)">กดการ์ดเพื่อดูรายชื่อ</span></div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px">
-        ${Object.keys(POSITION_BY_GROUP).map(g=>{
-          const es=empsByGroup[g]||[];
-          return `<div class="stat-card" style="cursor:pointer;border:2px solid var(--border)" onclick="showEmpGroupModal('${bid}','${g}')">
-            <div class="stat-icon-wrap ${grpColor[g]||'stat-icon-blue'}">👤</div>
-            <div class="stat-info">
-              <div class="stat-value stat-value-blue" style="font-size:28px">${es.length}</div>
-              <div class="stat-label">${g}</div>
-            </div>
-          </div>`;
-        }).join('')}
+      <div class="card-header"><span class="card-title">พนักงานแยกตามประเภท</span><span style="font-size:12px;color:var(--text3)">รวม ${totalActive} คน (กำลังทำงาน) · กดกราฟหรือรายการเพื่อดูรายชื่อ</span></div>
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+        <svg width="160" height="160" viewBox="0 0 160 160">${totalActive?slices:`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#E5E7EB"/>`}${totalActive?`<circle cx="${cx}" cy="${cy}" r="38" fill="white"/><text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="22" font-weight="700" fill="#1C1C1E">${totalActive}</text><text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="11" fill="#6B7280">คน</text>`:''}</svg>
+        <div style="flex:1;min-width:180px">
+          ${pieGroups.map(({g,n,color})=>`
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin-bottom:8px;border-radius:8px;background:var(--surface2);cursor:pointer;border:1.5px solid ${color}20" onclick="showEmpGroupModal('${bid}','${g}')">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:12px;height:12px;border-radius:50%;background:${color};flex-shrink:0"></div>
+                <span style="font-size:13px;font-weight:600">${g}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:18px;font-weight:700;color:${color}">${n}</span>
+                <span style="font-size:11px;color:var(--text3)">${totalActive?Math.round(n/totalActive*100):0}%</span>
+              </div>
+            </div>`).join('')}
+        </div>
       </div>
     </div>
     <div class="grid-2">
@@ -2934,14 +2952,20 @@ function renderEmployees() {
 }
 
 function renderEmpRows(emps) {
+  const grpHex = {'พนักงานบริการ':'#3B82F6','พนักงานครัว':'#22C55E','ทีมผู้จัดการสาขา':'#6366F1'};
   if(!emps.length) return '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:32px">ยังไม่มีรายชื่อพนักงาน</td></tr>';
   return emps.map(e=>{
     const grp = getPositionGroup(e.position);
-    const grpBadge = grp==='พนักงานบริการ'?'badge-blue':grp==='พนักงานครัว'?'badge-green':'badge-navy';
+    const color = grpHex[grp]||'#9CA3AF';
     return `<tr>
     <td style="font-family:monospace;font-size:12px;color:var(--text2)">${e.empCode||'—'}</td>
     <td><strong>${e.name}</strong></td>
-    <td><span class="badge ${grpBadge}" style="font-size:11px">${grp}</span></td>
+    <td>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></div>
+        <span style="font-size:12px;font-weight:600;color:${color}">${grp}</span>
+      </div>
+    </td>
     <td style="font-size:12.5px;color:var(--text2)">${e.position}</td>
     <td style="font-size:12.5px">${fmtDate(e.startDate)||'—'}</td>
     <td><span style="font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:3px 9px;border-radius:4px">${calcTenureShort(e.startDate)}</span></td>
