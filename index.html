@@ -2974,7 +2974,7 @@ function renderTrainings() {
           <td style="font-size:12.5px;white-space:nowrap">${fmtDateTime(t.date)}</td>
           <td style="font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name||t.moduleId}</td>
           <td><span class="badge badge-navy">${t.subtopics.length}/${MODULES[t.moduleId]?.subtopics?.length||'?'} หัวข้อ</span></td>
-          <td style="font-size:12.5px">${(t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`${e.name}<span style="color:var(--text3);font-size:11px"> (${e.position})</span>`:null;}).filter(Boolean).join('<br>')||'—'}</td>
+          <td style="font-size:12.5px">${(t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`${e.name}<div style="color:var(--text3);font-size:11px">${e.position} · ${calcTenureShort(e.startDate)}</div>`:null;}).filter(Boolean).join('<br>')||'—'}</td>
           <td style="font-size:12.5px">${t.trainerName}</td>
           <td>${badge}</td>
           <td style="white-space:nowrap">
@@ -3391,7 +3391,7 @@ function renderEvaluations() {
         const days = Math.ceil((dl-new Date())/(1000*60*60*24));
         const prog = getSubtopicProgress(t);
         const complete = prog.done === prog.total;
-        const empNames = (t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`${e.name} <span style="color:var(--text3);font-size:11px">(${e.position})</span>`:null;}).filter(Boolean).join('<br>') || '—';
+        const empNames = (t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`${e.name}<div style="color:var(--text3);font-size:11px">${e.position} · ${calcTenureShort(e.startDate)}</div>`:null;}).filter(Boolean).join('') || '—';
         return `<tr>
           <td style="font-size:12.5px">${fmtDateTime(t.date)}</td>
           <td style="font-weight:700">${MODULES[t.moduleId]?.name}</td>
@@ -3413,7 +3413,7 @@ function renderEvaluations() {
       <tbody>${done.map(t=>`<tr>
         <td style="font-size:12.5px">${fmtDateTime(t.date)}</td>
         <td style="font-weight:700">${MODULES[t.moduleId]?.name}</td>
-        <td style="font-size:12px">${(t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`${e.name} <span style="color:var(--text3);font-size:11px">(${e.position})</span>`:null;}).filter(Boolean).join('<br>')||'—'}</td>
+        <td style="font-size:12px">${(t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`${e.name}<div style="color:var(--text3);font-size:11px">${e.position} · ${calcTenureShort(e.startDate)}</div>`:null;}).filter(Boolean).join('')||'—'}</td>
         <td><span class="badge badge-navy" style="font-size:11px">${t.subtopics?.length||0}/${MODULES[t.moduleId]?.subtopics?.length||'?'}</span> <button class="btn btn-sm btn-outline" onclick="viewTrainingSubtopics('${t.id}')">ดู</button></td>
         <td style="font-size:12.5px">${t.eval.method}</td>
         <td><span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span></td>
@@ -3434,7 +3434,7 @@ function openEvalModal(trainingId) {
       <div style="font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name}</div>
       <div style="font-size:12px;color:var(--text2);margin-top:3px">${fmtDateTime(t.date)} · ผู้สอน: ${t.trainerName}</div>
       <div style="margin-top:8px;font-size:12px;color:var(--text2)">
-        ${(t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`<div style="margin-bottom:2px"><strong>${e.name}</strong> · <span style="color:var(--text3)">${e.position}</span></div>`:null;}).filter(Boolean).join('')||'—'}
+        ${(t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`<div style="margin-bottom:2px"><strong>${e.name}</strong> · <span style="color:var(--text3)">${e.position} · อายุงาน ${calcTenureShort(e.startDate)}</span></div>`:null;}).filter(Boolean).join('')||'—'}
       </div>
       <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">${(t.subtopics||[]).map(s=>`<span class="badge badge-blue" style="font-size:11px">${s}</span>`).join('')}<span style="font-size:11px;color:var(--text3);align-self:center">${t.subtopics?.length||0}/${MODULES[t.moduleId]?.subtopics?.length||'?'} หัวข้อ</span></div>
     </div>
