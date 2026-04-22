@@ -2928,6 +2928,8 @@ function renderTrainings() {
         const badge = t.eval
           ? `<span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span>`
           : isEvalDeadlinePassed(t.date) ? '<span class="badge badge-gray">หมดเวลา</span>' : '<span class="badge badge-yellow">รอประเมิน</span>';
+        const within7 = !isEvalDeadlinePassed(t.date);
+        const canEdit = within7 && !t.eval;
         return `<tr>
           <td style="font-size:12.5px;white-space:nowrap">${fmtDateTime(t.date)}</td>
           <td style="font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name||t.moduleId}</td>
@@ -2935,7 +2937,10 @@ function renderTrainings() {
           <td style="font-size:12.5px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name).filter(Boolean).join(', ')||'—'}</td>
           <td style="font-size:12.5px">${t.trainerName}</td>
           <td>${badge}</td>
-          <td><button class="btn btn-sm btn-outline" onclick="viewTraining('${t.id}')">ดู</button></td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-sm btn-outline" onclick="viewTraining('${t.id}')">ดู</button>
+            ${canEdit?`<button class="btn btn-sm btn-outline" style="margin-left:4px" onclick="openEditTraining('${t.id}')">แก้ไข</button><button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="deleteTraining('${t.id}')">ลบ</button>`:''}
+          </td>
         </tr>`;}).join('')}
       </tbody>
     </table></div>
@@ -3237,6 +3242,76 @@ function viewTraining(id) {
   `, null, 'ปิด');
 }
 
+function deleteTraining(id) {
+  const t = DB.trainings.find(t=>t.id===id); if(!t) return;
+  const isAdmin = currentUser?.type === 'admin';
+  const within7 = !isEvalDeadlinePassed(t.date);
+  if (!isAdmin && (!within7 || t.eval)) { notify('ไม่สามารถลบได้','error'); return; }
+  showModal('ยืนยันการลบ', `<p>ต้องการลบบันทึกการสอนงานนี้ใช่ไหม?</p><p style="color:var(--red);font-size:13px">การดำเนินการนี้ไม่สามารถยกเลิกได้</p>`, () => {
+    DB.trainings = DB.trainings.filter(t=>t.id!==id);
+    gsDel('trainings', id);
+    closeModal(); showPage(currentPage); notify('ลบบันทึกการสอนงานสำเร็จ');
+  }, 'ลบ');
+}
+
+function adminDeleteEval(id) {
+  const t = DB.trainings.find(t=>t.id===id); if(!t||!t.eval) return;
+  showModal('ยืนยันการลบผลประเมิน', `<p>ต้องการลบผลการประเมินของบันทึกนี้ใช่ไหม?</p><p style="color:var(--red);font-size:13px">สถานะจะกลับเป็น "รอประเมิน"</p>`, () => {
+    t.eval = null;
+    gsSave('trainings', t.id, t);
+    closeModal(); showPage(currentPage); notify('ลบผลประเมินสำเร็จ');
+  }, 'ลบผลประเมิน');
+}
+
+function openEditTraining(id) {
+  const t = DB.trainings.find(t=>t.id===id); if(!t) return;
+  const bid = t.branchId;
+  const emps = getBranchEmployees(bid).filter(e=>e.status==='active');
+  const empsJson = JSON.stringify(emps.map(e=>({id:e.id,name:e.name,position:e.position})));
+  _selectedEmps = (t.traineeIds||[]).map(id=>{ const e=getEmployee(id); return e?{id:e.id,name:e.name,position:e.position}:null; }).filter(Boolean);
+  showModal('แก้ไขบันทึกการสอนงาน', `
+    <div class="form-row">
+      <div><label class="form-label">วันที่และเวลา <span class="req">*</span></label><input class="form-input" type="datetime-local" id="tr-date" value="${t.date.slice(0,16)}"></div>
+      <div><label class="form-label">ผู้สอนงาน <span class="req">*</span></label><input class="form-input" id="tr-trainer" value="${t.trainerName}"></div>
+    </div>
+    <div class="form-full">
+      <label class="form-label">พนักงาน <span class="req">*</span></label>
+      <div class="emp-multiselect" id="emp-multiselect" data-emps='${empsJson.replace(/'/g,"&#39;")}'>
+        <div class="emp-select-box" id="emp-select-box" onclick="focusEmpSearch(event)">
+          <span id="emp-placeholder" style="color:var(--text3);font-size:14px;padding:2px 4px;display:none">ค้นหาพนักงาน...</span>
+          <input type="text" id="emp-search-input" style="display:none" placeholder="ค้นหาชื่อ..." oninput="filterEmpDropdown()" onkeydown="onEmpSearchKey(event)">
+        </div>
+        <div class="emp-dropdown-list" id="emp-dropdown-list">
+          ${emps.map(e=>`<div class="emp-opt${_selectedEmps.find(s=>s.id===e.id)?' selected':''}" id="empopt-${e.id}" data-id="${e.id}" data-name="${e.name}" data-pos="${e.position}" onclick="toggleEmpSelection('${e.id}')">
+            <div><div>${e.name}</div><div class="emp-opt-pos">${e.position}</div></div><span class="emp-opt-check">✓</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="form-full">
+      <label class="form-label">Module <span class="req">*</span></label>
+      <select class="form-select" id="tr-module" onchange="updateSubtopics()">
+        ${Object.entries(MODULES).map(([k,m])=>`<option value="${k}" ${k===t.moduleId?'selected':''}>${m.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-full">
+      <label class="form-label">หัวข้อย่อย <span class="req">*</span></label>
+      <div class="checkbox-group" id="subtopics-container">
+        ${(MODULES[t.moduleId]?.subtopics||[]).map(s=>`<label class="checkbox-item${t.subtopics.includes(s)?' checked':''}" onclick="toggleCheck(this)"><input type="checkbox" class="sub-check" value="${s}"${t.subtopics.includes(s)?' checked':''}> ${s}</label>`).join('')}
+      </div>
+    </div>`, () => {
+    const date = document.getElementById('tr-date').value;
+    const trainer = document.getElementById('tr-trainer').value.trim();
+    const moduleId = document.getElementById('tr-module').value;
+    const subtopics = [...document.querySelectorAll('.sub-check:checked')].map(c=>c.value);
+    const traineeIds = getSelectedEmpIds();
+    if(!date||!trainer||!moduleId||!subtopics.length||!traineeIds.length){notify('กรุณากรอกข้อมูลให้ครบ','error');return;}
+    t.date=date; t.trainerName=trainer; t.moduleId=moduleId; t.subtopics=subtopics; t.traineeIds=traineeIds;
+    gsSave('trainings', t.id, t);
+    closeModal(); showPage('trainings'); notify('แก้ไขบันทึกการสอนงานสำเร็จ');
+  }, 'บันทึก');
+  setTimeout(()=>{ renderEmpTags(); document.addEventListener('click', closeEmpDropdownOutside); },100);
+}
+
 // ==================== EVALUATIONS ====================
 function renderEvaluations() {
   const bid = getBranchId(); const trains = getBranchTrainings(bid);
@@ -3297,6 +3372,8 @@ function openEvalModal(trainingId) {
     <div style="background:var(--primary-light);border-radius:8px;padding:12px 14px;margin-bottom:16px;border:1px solid #F5C4A4">
       <div style="font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name}</div>
       <div style="font-size:12px;color:var(--text2);margin-top:3px">${fmtDateTime(t.date)} · ผู้สอน: ${t.trainerName}</div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text2)">พนักงาน: ${(t.traineeIds||[]).map(id=>getEmployee(id)?.name).filter(Boolean).join(', ')||'—'}</div>
+      <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">${(t.subtopics||[]).map(s=>`<span class="badge badge-blue" style="font-size:11px">${s}</span>`).join('')}</div>
     </div>
     <div class="form-full">
       <label class="form-label">วิธีการประเมินผล <span class="req">*</span></label>
@@ -3737,14 +3814,18 @@ function renderAdminTrainings() {
   <div class="page-header"><div><div class="page-title">ประวัติการสอนงานทั้งระบบ</div><div class="page-sub">${DB.trainings.length} รายการ</div></div></div>
   <div class="card">
     <div class="table-wrap"><table>
-      <thead><tr><th>สาขา</th><th>วันที่</th><th>Module</th><th>พนักงาน</th><th>ผู้สอน</th><th>สถานะ</th></tr></thead>
-      <tbody>${DB.trainings.length===0?'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:32px">ยังไม่มีข้อมูล</td></tr>':DB.trainings.map(t=>`<tr>
+      <thead><tr><th>สาขา</th><th>วันที่</th><th>Module</th><th>พนักงาน</th><th>ผู้สอน</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+      <tbody>${DB.trainings.length===0?'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">ยังไม่มีข้อมูล</td></tr>':DB.trainings.map(t=>`<tr>
         <td><span class="badge badge-navy">${t.branchId}</span></td>
         <td style="font-size:12px;white-space:nowrap">${fmtDateTime(t.date)}</td>
         <td style="font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name}</td>
-        <td style="font-size:12px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name||id).join(', ')}</td>
+        <td style="font-size:12px">${(t.traineeIds||[]).map(id=>getEmployee(id)?.name).filter(Boolean).join(', ')||'—'}</td>
         <td style="font-size:12px">${t.trainerName}</td>
         <td>${t.eval?`<span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span>`:isEvalDeadlinePassed(t.date)?'<span class="badge badge-gray">หมดเวลา</span>':'<span class="badge badge-yellow">รอประเมิน</span>'}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm btn-danger" onclick="deleteTraining('${t.id}')">ลบ</button>
+          ${t.eval?`<button class="btn btn-sm btn-outline" style="margin-left:4px" onclick="adminDeleteEval('${t.id}')">ลบผลประเมิน</button>`:''}
+        </td>
       </tr>`).join('')}</tbody>
     </table></div>
   </div>`;
