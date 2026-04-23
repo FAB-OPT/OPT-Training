@@ -2343,6 +2343,14 @@ const QUIZ_BANK = {
 
 // ==================== DB ====================
 let DB = { employees: {}, trainings: [], quizResults: [] };
+try {
+  const _c = JSON.parse(localStorage.getItem('opt_db_cache') || 'null');
+  if (_c && _c.employees && _c.trainings) {
+    DB.employees = _c.employees;
+    DB.trainings = _c.trainings;
+    DB.quizResults = _c.quizResults || [];
+  }
+} catch(_) {}
 
 // ==================== GOOGLE SHEETS ====================
 const GS_URL = 'https://script.google.com/macros/s/AKfycbzv_7Ez3hKNVpyLoxDMHr3EgmF83jIUulNETfOoEOyHr5OFxrHgFh1fTJ3wzgyXr36S/exec';
@@ -2384,6 +2392,7 @@ async function gsLoad() {
     const localPending = DB.trainings.filter(t => !serverIds.has(t.id));
     DB.trainings = [...serverTrainings, ...localPending];
     DB.quizResults = data.quizResults || [];
+    try { localStorage.setItem('opt_db_cache', JSON.stringify({employees: DB.employees, trainings: DB.trainings, quizResults: DB.quizResults})); } catch(_) {}
   } catch(err) {
     console.error('GS load error:', err);
     notify('โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรช', 'error');
@@ -2593,6 +2602,7 @@ let _autoSyncTimer = null;
 
 function startAutoSync() {
   stopAutoSync();
+  gsLoad().then(() => { if (currentUser) showPage(currentPage); });
   _autoSyncTimer = setInterval(async () => {
     await gsLoad();
     if (currentUser) showPage(currentPage);
