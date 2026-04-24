@@ -3022,7 +3022,7 @@ function renderDashboard() {
       ${(()=>{
         const gLabel={'Service':'พนักงานบริการ','Cook':'พนักงานครัว'};
         return ['Service','Cook'].map(grp=>{
-          const mods=Object.entries(MODULES).filter(([,m])=>m.group===grp);
+          const mods=Object.entries(MODULES).filter(([id,m])=>m.group===grp&&trains.some(t=>t.moduleId===id));
           if(!mods.length) return '';
           const grpColor=grp==='Service'?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
           const grpBdg=grp==='Service'?grpBadge['พนักงานบริการ']:grpBadge['พนักงานครัว'];
