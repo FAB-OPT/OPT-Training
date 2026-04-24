@@ -2846,129 +2846,221 @@ function renderDashboard() {
     }).join('');
 
     return `
-    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
-      <div class="stat-card"><div class="stat-icon-wrap stat-icon-blue">👥</div><div class="stat-info"><div class="stat-value stat-value-blue">${emps.length}</div><div class="stat-label">พนักงานทั้งหมด</div></div></div>
-      <div class="stat-card"><div class="stat-icon-wrap stat-icon-green">✓</div><div class="stat-info"><div class="stat-value stat-value-green">${totalActive}</div><div class="stat-label">กำลังทำงาน</div></div></div>
-      <div class="stat-card"><div class="stat-icon-wrap stat-icon-yellow">⏳</div><div class="stat-info"><div class="stat-value stat-value-yellow">${pending.length}</div><div class="stat-label">รอประเมินผล</div></div></div>
-      <div class="stat-card"><div class="stat-icon-wrap stat-icon-purple">%</div><div class="stat-info"><div class="stat-value stat-value-purple">${passRate}%</div><div class="stat-label">อัตราผ่านประเมิน</div></div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px">
+      <div style="background:linear-gradient(135deg,#1D4ED8,#3B82F6);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #3B82F625">
+        <div style="font-size:10px;font-weight:700;opacity:.75;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">พนักงานทั้งหมด</div>
+        <div style="font-size:40px;font-weight:800;line-height:1;margin-bottom:6px">${emps.length}</div>
+        <div style="font-size:11px;opacity:.75">${totalActive} ทำงาน · ${emps.length-totalActive} ลาออก</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#15803D,#22C55E);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #22C55E25">
+        <div style="font-size:10px;font-weight:700;opacity:.75;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">บันทึกการสอน</div>
+        <div style="font-size:40px;font-weight:800;line-height:1;margin-bottom:6px">${trains.length}</div>
+        <div style="font-size:11px;opacity:.75">${evaled.length} ประเมินแล้ว · ${trains.length-evaled.length} รอ</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#B45309,#F59E0B);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #F59E0B25">
+        <div style="font-size:10px;font-weight:700;opacity:.75;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">รอประเมินผล</div>
+        <div style="font-size:40px;font-weight:800;line-height:1;margin-bottom:6px">${pending.length}</div>
+        <div style="font-size:11px;opacity:.75">ภายใน 14 วันนับจากวันสอน</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#6D28D9,#8B5CF6);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #8B5CF625;display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:10px;font-weight:700;opacity:.75;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">อัตราผ่านประเมิน</div>
+          <div style="font-size:40px;font-weight:800;line-height:1;margin-bottom:6px">${passRate}%</div>
+          <div style="font-size:11px;opacity:.75">${evaled.filter(t=>isEvalPass(t.eval.result)).length}/${evaled.length} ครั้ง</div>
+        </div>
+        <svg width="62" height="62" viewBox="0 0 80 80" style="flex-shrink:0;opacity:.9">
+          <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="8"/>
+          <circle cx="40" cy="40" r="30" fill="none" stroke="white" stroke-width="8"
+            stroke-dasharray="${Math.round(passRate/100*188.5)} 188.5"
+            stroke-linecap="round" transform="rotate(-90 40 40)"/>
+          <text x="40" y="45" text-anchor="middle" font-size="13" font-weight="700" fill="white">${passRate}%</text>
+        </svg>
+      </div>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">ข้อมูลพนักงาน</span><span style="font-size:12px;color:var(--text3)">กำลังทำงาน ${totalActive} คน · กดประเภทเพื่อดูรายชื่อ</span></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:start">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">แยกตามประเภท</div>
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-            <svg width="90" height="90" viewBox="0 0 160 160" style="flex-shrink:0">
+    <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-bottom:16px;align-items:start">
+      <div class="card" style="margin:0">
+        <div class="card-header"><span class="card-title">ข้อมูลพนักงาน</span><span style="font-size:11px;color:var(--text3)">กดประเภทเพื่อดูรายชื่อ</span></div>
+        <div style="display:grid;grid-template-columns:auto 1fr 1fr;gap:20px;align-items:start">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">แยกตามประเภท</div>
+            <svg width="110" height="110" viewBox="0 0 160 160">
               ${totalActive?slices:`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#E5E7EB"/>`}
-              ${totalActive?`<circle cx="${cx}" cy="${cy}" r="38" fill="white"/><text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="24" font-weight="700" fill="#1C1C1E">${totalActive}</text><text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="11" fill="#6B7280">คน</text>`:''}
+              ${totalActive?`<circle cx="${cx}" cy="${cy}" r="40" fill="white"/><text x="${cx}" y="${cy-5}" text-anchor="middle" font-size="26" font-weight="800" fill="#1C1C1E">${totalActive}</text><text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="11" fill="#6B7280">คน</text>`:''}
             </svg>
-            <div style="flex:1">
+            <div style="margin-top:8px">
               ${pieGroups.map(({g,n,color})=>`
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;margin-bottom:5px;border-radius:7px;cursor:pointer;border-left:3px solid ${color};background:${color}08" onclick="showEmpGroupModal('${bid}','${g.replace(/'/g,"\\'")}')">
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <div style="width:8px;height:8px;border-radius:50%;background:${color}"></div>
-                    <span style="font-size:11px;font-weight:600;color:${color}">${g.replace('พนักงาน','').replace('ทีม','')}</span>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;margin-bottom:4px;border-radius:7px;cursor:pointer;background:${color}0D;border-left:3px solid ${color}" onclick="showEmpGroupModal('${bid}','${g.replace(/'/g,"\\'")}')">
+                  <div style="display:flex;align-items:center;gap:5px">
+                    <div style="width:7px;height:7px;border-radius:50%;background:${color}"></div>
+                    <span style="font-size:10px;font-weight:600;color:${color}">${g.replace('พนักงาน','').replace('ทีม','')}</span>
                   </div>
-                  <span style="font-size:13px;font-weight:700;color:${color}">${n}<span style="font-size:10px;font-weight:400;color:var(--text3)"> คน</span></span>
+                  <span style="font-size:12px;font-weight:700;color:${color}">${n}</span>
                 </div>`).join('')}
             </div>
           </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">แยกตามตำแหน่ง</div>
+            ${(()=>{
+              const allPos=Object.keys(POSITION_BY_GROUP).flatMap(g=>POSITION_BY_GROUP[g].map(pos=>({pos,color:grpHex[g]||'#9CA3AF',cnt:activeEmps.filter(e=>e.position===pos).length}))).filter(({cnt})=>cnt>0);
+              const maxC=Math.max(...allPos.map(x=>x.cnt),1);
+              return allPos.map(({pos,cnt,color})=>`
+                <div style="margin-bottom:7px">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                    <span style="font-size:10.5px;color:var(--text2)">${pos}</span>
+                    <span style="font-size:10.5px;font-weight:700;color:${color}">${cnt}</span>
+                  </div>
+                  <div style="height:7px;background:var(--surface2);border-radius:4px;overflow:hidden">
+                    <div style="height:100%;width:${Math.round(cnt/maxC*100)}%;background:${color};border-radius:4px"></div>
+                  </div>
+                </div>`).join('');
+            })()}
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">แยกตามอายุงาน</div>
+            ${(()=>{
+              const bk=[['< 3 เดือน',0,3,'#9CA3AF'],['3–6 เดือน',3,6,'#F59E0B'],['6–12 เดือน',6,12,'#3B82F6'],['1–2 ปี',12,24,'#22C55E'],['> 2 ปี',24,9999,'#8B5CF6']];
+              const gm=e=>{
+                if(!e.startDate) return -1;
+                const s=new Date(e.startDate); if(isNaN(s)) return -1;
+                const n=new Date(new Date().getTime()+7*60*60*1000);
+                let y=n.getFullYear()-s.getFullYear(), mo=n.getMonth()-s.getMonth();
+                if(n.getDate()<s.getDate()) mo--;
+                if(mo<0){y--;mo+=12;} return y*12+mo;
+              };
+              const counts=bk.map(([,mn,mx])=>activeEmps.filter(e=>{const m=gm(e);return m>=mn&&m<mx;}).length);
+              const maxC=Math.max(...counts,1);
+              return bk.map(([lbl,,,col],i)=>`
+                <div style="margin-bottom:9px">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+                    <span style="font-size:10.5px;color:var(--text2)">${lbl}</span>
+                    <span style="font-size:11px;font-weight:700;color:${col}">${counts[i]} คน</span>
+                  </div>
+                  <div style="height:9px;background:var(--surface2);border-radius:5px;overflow:hidden;position:relative">
+                    <div style="height:100%;width:${Math.round(counts[i]/maxC*100)}%;background:${col};border-radius:5px"></div>
+                    ${counts[i]&&Math.round(counts[i]/maxC*100)>18?`<span style="position:absolute;left:5px;top:0;line-height:9px;font-size:7px;color:white;font-weight:700">${totalActive?Math.round(counts[i]/totalActive*100):0}%</span>`:''}
+                  </div>
+                </div>`).join('');
+            })()}
+          </div>
         </div>
-        <div>
-          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">แยกตามตำแหน่ง</div>
-          ${(()=>{
-            const allPos=Object.keys(POSITION_BY_GROUP).flatMap(g=>POSITION_BY_GROUP[g].map(pos=>({pos,color:grpHex[g]||'#9CA3AF',cnt:activeEmps.filter(e=>e.position===pos).length}))).filter(({cnt})=>cnt>0);
-            const maxC=Math.max(...allPos.map(x=>x.cnt),1);
-            return allPos.map(({pos,cnt,color})=>`
-              <div style="margin-bottom:8px">
-                <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-                  <span style="font-size:11px;color:var(--text2)">${pos}</span>
-                  <span style="font-size:11px;font-weight:700;color:${color}">${cnt}</span>
-                </div>
-                <div style="height:7px;background:var(--surface2);border-radius:4px;overflow:hidden">
-                  <div style="height:100%;width:${Math.round(cnt/maxC*100)}%;background:${color};border-radius:4px"></div>
-                </div>
-              </div>`).join('');
-          })()}
+      </div>
+      <div class="card" style="margin:0">
+        <div class="card-header"><span class="card-title">ภาพรวมการฝึกอบรม</span></div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+          ${[['📋','บันทึกทั้งหมด',trains.length,'#64748B'],['📝','ประเมินแล้ว',evaled.length,'#F59E0B'],['✅','ผ่านเกณฑ์',evaled.filter(t=>isEvalPass(t.eval.result)).length,'#22C55E']].map(([ico,lbl,val,col])=>`
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:${col}0D;border:1px solid ${col}20">
+              <span style="font-size:22px">${ico}</span>
+              <div style="flex:1">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:1px">${lbl}</div>
+                <div style="font-size:24px;font-weight:800;color:${col};line-height:1.1">${val}</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:16px;font-weight:700;color:${col}">${trains.length?Math.round(val/trains.length*100):0}%</div>
+                <div style="font-size:9px;color:var(--text3)">ของทั้งหมด</div>
+              </div>
+            </div>`).join('')}
         </div>
-        <div>
-          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">แยกตามอายุงาน</div>
-          ${(()=>{
-            const bk=[['< 3 เดือน',0,3,'#9CA3AF'],['3 – 6 เดือน',3,6,'#F59E0B'],['6 – 12 เดือน',6,12,'#3B82F6'],['1 – 2 ปี',12,24,'#22C55E'],['> 2 ปี',24,9999,'#8B5CF6']];
-            const gm=e=>{
-              if(!e.startDate) return -1;
-              const s=new Date(e.startDate); if(isNaN(s)) return -1;
-              const n=new Date(new Date().getTime()+7*60*60*1000);
-              let y=n.getFullYear()-s.getFullYear(), mo=n.getMonth()-s.getMonth();
-              if(n.getDate()<s.getDate()) mo--;
-              if(mo<0){y--;mo+=12;} return y*12+mo;
-            };
-            const counts=bk.map(([,mn,mx])=>activeEmps.filter(e=>{const m=gm(e);return m>=mn&&m<mx;}).length);
-            const maxC=Math.max(...counts,1);
-            return bk.map(([lbl,,,col],i)=>`
-              <div style="margin-bottom:10px">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-                  <span style="font-size:11px;color:var(--text2)">${lbl}</span>
-                  <span style="font-size:12px;font-weight:700;color:${col}">${counts[i]}<span style="font-size:10px;font-weight:400;color:var(--text3)"> คน</span></span>
-                </div>
-                <div style="height:10px;background:var(--surface2);border-radius:5px;overflow:hidden;position:relative">
-                  <div style="height:100%;width:${Math.round(counts[i]/maxC*100)}%;background:${col};border-radius:5px"></div>
-                  ${counts[i]&&Math.round(counts[i]/maxC*100)>20?`<span style="position:absolute;left:6px;top:50%;transform:translateY(-50%);font-size:8px;color:white;font-weight:700">${totalActive?Math.round(counts[i]/totalActive*100):0}%</span>`:''}
-                </div>
-              </div>`).join('');
-          })()}
+        <div style="border-top:1px solid var(--border);padding-top:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px">รอประเมิน ${pending.length?'('+pending.length+')':''}</div>
+          ${pending.length===0
+            ?'<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px">ไม่มีรายการรอประเมิน ✓</div>'
+            :pending.slice(0,3).map(t=>`
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+              <div style="width:6px;height:6px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${MODULES[t.moduleId]?.name||'—'}</div>
+                <div style="font-size:10px;color:var(--text3)">${fmtDate(t.date)} · ${(t.traineeIds||[]).length} คน</div>
+              </div>
+            </div>`).join('')+(pending.length>3?`<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center">และอีก ${pending.length-3} รายการ</div>`:'')}
         </div>
       </div>
     </div>
+
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">สรุปการสอนตาม Module</span></div>
+      <div class="card-header"><span class="card-title">อัตราผ่านประเมินรายModule</span><span style="font-size:11px;color:var(--text3)">เรียงจากสูงสุด · มีข้อมูล ${Object.entries(MODULES).filter(([id])=>trains.some(t=>t.moduleId===id)).length} Module</span></div>
       ${(()=>{
-        const groups = ['Service','Cook'];
-        const gLabel = {'Service':'พนักงานบริการ','Cook':'พนักงานครัว'};
-        return groups.map(grp=>{
-          const mods = Object.entries(MODULES).filter(([,m])=>m.group===grp);
+        const modData=Object.entries(MODULES).map(([id,m])=>{
+          const mt=trains.filter(t=>t.moduleId===id);
+          const total=mt.length, ev=mt.filter(t=>t.eval).length, ps=mt.filter(t=>t.eval&&isEvalPass(t.eval.result)).length;
+          return {id,name:m.name,group:m.group,total,ev,ps,pr:ev?Math.round(ps/ev*100):null};
+        }).filter(d=>d.total>0).sort((a,b)=>(b.pr??-1)-(a.pr??-1));
+        if(!modData.length) return '<p class="text-muted">ยังไม่มีข้อมูล</p>';
+        return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 28px">
+          ${modData.map(d=>{
+            const isSv=d.group==='Service';
+            const dot=isSv?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
+            const barCol=d.pr===null?'#9CA3AF':d.pr>=80?'#22C55E':d.pr>=50?'#F59E0B':'#EF4444';
+            return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1">
+                  <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0"></div>
+                  <span style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:8px">
+                  <span style="font-size:10px;color:var(--text3)">สอน ${d.total}</span>
+                  <span style="font-size:12px;font-weight:800;color:${barCol};min-width:30px;text-align:right">${d.pr!==null?d.pr+'%':'—'}</span>
+                </div>
+              </div>
+              <div style="height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;display:flex">
+                <div style="height:100%;width:${Math.round(d.ps/Math.max(d.total,1)*100)}%;background:#22C55E;border-radius:4px 0 0 4px"></div>
+                <div style="height:100%;width:${Math.round((d.ev-d.ps)/Math.max(d.total,1)*100)}%;background:#EF4444"></div>
+                <div style="height:100%;width:${Math.round((d.total-d.ev)/Math.max(d.total,1)*100)}%;background:#E5E7EB"></div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="display:flex;gap:14px;margin-top:10px;font-size:10px;color:var(--text3)">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#22C55E;display:inline-block"></span>ผ่าน</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#EF4444;display:inline-block"></span>ไม่ผ่าน</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#E5E7EB;display:inline-block"></span>ยังไม่ประเมิน</span>
+        </div>`;
+      })()}
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><span class="card-title">รายละเอียดการสอนตาม Module</span></div>
+      ${(()=>{
+        const gLabel={'Service':'พนักงานบริการ','Cook':'พนักงานครัว'};
+        return ['Service','Cook'].map(grp=>{
+          const mods=Object.entries(MODULES).filter(([,m])=>m.group===grp);
           if(!mods.length) return '';
-          const grpColor = grp==='Service'?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
-          const grpBdg = grp==='Service'?grpBadge['พนักงานบริการ']:grpBadge['พนักงานครัว'];
-          return `
-          <div style="margin-bottom:20px">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid ${grpColor}30">
+          const grpColor=grp==='Service'?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
+          const grpBdg=grp==='Service'?grpBadge['พนักงานบริการ']:grpBadge['พนักงานครัว'];
+          return `<div style="margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid ${grpColor}25">
               <div style="width:4px;height:18px;background:${grpColor};border-radius:2px"></div>
               <span style="font-size:13px;font-weight:700;color:${grpColor}">${gLabel[grp]}</span>
               <span class="badge ${grpBdg}" style="font-size:10px">${mods.length} Module</span>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
               ${mods.map(([id,m])=>{
                 const mt=trains.filter(t=>t.moduleId===id);
-                const total=mt.length, ev=mt.filter(t=>t.eval).length, ps=mt.filter(t=>t.eval&&isEvalPass(t.eval.result)).length, fl=ev-ps;
-                const notEv=total-ev;
+                const total=mt.length,ev=mt.filter(t=>t.eval).length,ps=mt.filter(t=>t.eval&&isEvalPass(t.eval.result)).length,fl=ev-ps,notEv=total-ev;
                 const pr=ev?Math.round(ps/ev*100):null;
                 const ref=Math.max(total,1);
-                const psPct=Math.round(ps/ref*100), flPct=Math.round(fl/ref*100), nePct=Math.round(notEv/ref*100);
-                return `<div style="background:var(--surface2);border-radius:10px;padding:12px;border:1px solid var(--border)">
-                  <div style="display:flex;align-items:start;justify-content:space-between;margin-bottom:8px">
-                    <div>
-                      <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:2px">${m.name}</div>
-                      <div style="display:flex;gap:8px;font-size:11px;color:var(--text3)">
-                        <span>สอน <b style="color:var(--text)">${total}</b></span>
-                        <span>ประเมิน <b style="color:var(--text)">${ev}</b></span>
-                        <span>ผ่าน <b style="color:var(--green)">${ps}</b></span>
+                const barCol=pr===null?'#9CA3AF':pr>=80?'#22C55E':pr>=50?'#F59E0B':'#EF4444';
+                return `<div style="border-radius:12px;padding:14px;border:1.5px solid ${grpColor}20;background:linear-gradient(135deg,${grpColor}05 0%,white 60%)">
+                  <div style="display:flex;align-items:start;justify-content:space-between;margin-bottom:10px">
+                    <div style="flex:1;min-width:0;padding-right:8px">
+                      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">${m.name}</div>
+                      <div style="display:flex;gap:10px;font-size:10px">
+                        <span style="color:var(--text3)">สอน <b style="color:var(--text2)">${total}</b></span>
+                        <span style="color:var(--text3)">ประเมิน <b style="color:var(--text2)">${ev}</b></span>
+                        <span style="color:var(--text3)">ผ่าน <b style="color:#22C55E">${ps}</b></span>
                       </div>
                     </div>
-                    ${pr!==null?`<span class="badge ${pr>=80?'badge-green':pr>=50?'badge-yellow':'badge-red'}" style="font-size:11px;flex-shrink:0">${pr}%</span>`:'<span style="font-size:11px;color:var(--text3)">—</span>'}
+                    <div style="text-align:center;flex-shrink:0">
+                      <div style="font-size:20px;font-weight:800;color:${barCol};line-height:1">${pr!==null?pr+'%':'—'}</div>
+                      <div style="font-size:9px;color:var(--text3)">pass rate</div>
+                    </div>
                   </div>
-                  <div style="height:10px;background:var(--surface3);border-radius:5px;overflow:hidden;display:flex;margin-bottom:8px">
-                    <div style="height:100%;width:${psPct}%;background:#22C55E" title="ผ่าน ${ps}"></div>
-                    <div style="height:100%;width:${flPct}%;background:#EF4444" title="ไม่ผ่าน ${fl}"></div>
-                    <div style="height:100%;width:${nePct}%;background:#D1D5DB" title="ยังไม่ประเมิน ${notEv}"></div>
-                  </div>
-                  <div style="display:flex;gap:10px;font-size:10px;color:var(--text3);margin-bottom:8px">
-                    <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#22C55E;display:inline-block"></span>ผ่าน</span>
-                    <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#EF4444;display:inline-block"></span>ไม่ผ่าน</span>
-                    <span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:2px;background:#D1D5DB;display:inline-block"></span>ยังไม่ประเมิน</span>
+                  <div style="height:8px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:10px;background:#E5E7EB">
+                    <div style="height:100%;width:${Math.round(ps/ref*100)}%;background:#22C55E"></div>
+                    <div style="height:100%;width:${Math.round(fl/ref*100)}%;background:#EF4444"></div>
+                    <div style="height:100%;width:${Math.round(notEv/ref*100)}%;background:#D1D5DB"></div>
                   </div>
                   <div style="display:flex;flex-wrap:wrap;gap:3px">
-                    ${(m.subtopics||[]).map(s=>`<span style="font-size:10px;background:white;color:var(--text2);padding:2px 6px;border-radius:8px;border:1px solid var(--border)">${s}</span>`).join('')}
+                    ${(m.subtopics||[]).map(s=>`<span style="font-size:9.5px;background:${grpColor}08;color:var(--text2);padding:2px 7px;border-radius:10px;border:1px solid ${grpColor}20">${s}</span>`).join('')}
                   </div>
                 </div>`;
               }).join('')}
@@ -2977,16 +3069,24 @@ function renderDashboard() {
         }).join('');
       })()}
     </div>
-    <div class="card" style="margin-top:16px">
+
+    <div class="card">
       <div class="card-header"><span class="card-title">บันทึกการสอนล่าสุด</span><button class="btn btn-sm btn-outline" onclick="showPage('trainings')">ดูทั้งหมด</button></div>
-      ${trains.length===0?'<p class="text-muted">ยังไม่มีบันทึก</p>':trains.slice(-5).reverse().map(t=>`
-        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-size:13.5px;font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name}</span>
-            ${t.eval?`<span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span>`:isEvalDeadlinePassed(t.date)?'<span class="badge badge-gray">หมดเวลา</span>':'<span class="badge badge-yellow">รอประเมิน</span>'}
+      ${trains.length===0?'<p class="text-muted">ยังไม่มีบันทึก</p>':trains.slice(-5).reverse().map(t=>{
+        const mod=MODULES[t.moduleId];
+        const isSv=mod?.group==='Service';
+        const dotCol=isSv?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
+        const icon=isSv?'🍽':'🍳';
+        const badge=t.eval?`<span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span>`:isEvalDeadlinePassed(t.date)?'<span class="badge badge-gray">หมดเวลา</span>':'<span class="badge badge-yellow">รอประเมิน</span>';
+        return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="width:36px;height:36px;border-radius:50%;background:${dotCol}15;border:2px solid ${dotCol}30;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">${icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mod?.name||'—'}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">${fmtDateTime(t.date)} · ${(t.traineeIds||[]).length} คน</div>
           </div>
-          <div style="font-size:12px;color:var(--text3);margin-top:3px">${fmtDateTime(t.date)} · ${(t.traineeIds||[]).length} คน</div>
-        </div>`).join('')}
+          <div style="align-self:center;flex-shrink:0">${badge}</div>
+        </div>`;
+      }).join('')}
     </div>`;
   })()}`;
 }
