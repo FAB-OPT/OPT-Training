@@ -2977,8 +2977,45 @@ function renderDashboard() {
     <div class="card" style="margin-bottom:16px">
       <div class="card-header"><span class="card-title">รายละเอียดการสอนตาม Module</span></div>
       ${(()=>{
+        const allModData=Object.entries(MODULES).map(([id,m])=>{
+          const mt=trains.filter(t=>t.moduleId===id);
+          const total=mt.length,ev=mt.filter(t=>t.eval).length,ps=mt.filter(t=>t.eval&&isEvalPass(t.eval.result)).length;
+          return {id,name:m.name,group:m.group,total,ev,ps,fl:ev-ps,notEv:total-ev,pr:ev?Math.round(ps/ev*100):null};
+        }).filter(d=>d.total>0);
+        if(!allModData.length) return '<p class="text-muted">ยังไม่มีข้อมูล</p>';
+        const sorted=[...allModData].sort((a,b)=>(b.pr??-1)-(a.pr??-1));
+        const maxTotal=Math.max(...allModData.map(d=>d.total),1);
+        const overviewChart=`<div style="margin-bottom:20px;padding:16px;background:var(--surface2);border-radius:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:12px">เปรียบเทียบ Pass Rate ทุก Module</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${sorted.map(d=>{
+              const isSv=d.group==='Service';
+              const dot=isSv?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
+              const barCol=d.pr===null?'#9CA3AF':d.pr>=80?'#22C55E':d.pr>=50?'#F59E0B':'#EF4444';
+              const psPct=Math.round(d.ps/Math.max(d.total,1)*100);
+              const flPct=Math.round(d.fl/Math.max(d.total,1)*100);
+              const nePct=Math.round(d.notEv/Math.max(d.total,1)*100);
+              return `<div style="display:flex;align-items:center;gap:8px">
+                <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0"></div>
+                <div style="font-size:11px;color:var(--text);width:200px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name}</div>
+                <div style="flex:1;height:14px;border-radius:7px;overflow:hidden;background:#E5E7EB;display:flex">
+                  <div style="height:100%;width:${psPct}%;background:#22C55E;transition:width 0.4s"></div>
+                  <div style="height:100%;width:${flPct}%;background:#EF4444"></div>
+                  <div style="height:100%;width:${nePct}%;background:#D1D5DB"></div>
+                </div>
+                <div style="font-size:11px;font-weight:800;color:${barCol};width:36px;text-align:right;flex-shrink:0">${d.pr!==null?d.pr+'%':'—'}</div>
+                <div style="font-size:10px;color:var(--text3);width:32px;flex-shrink:0">${d.total} ครั้ง</div>
+              </div>`;
+            }).join('')}
+          </div>
+          <div style="display:flex;gap:14px;margin-top:10px;font-size:10px;color:var(--text3)">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#22C55E;display:inline-block"></span>ผ่าน</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#EF4444;display:inline-block"></span>ไม่ผ่าน</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height=6px;border-radius:2px;background:#D1D5DB;display:inline-block"></span>ยังไม่ประเมิน</span>
+          </div>
+        </div>`;
         const gLabel={'Service':'พนักงานบริการ','Cook':'พนักงานครัว'};
-        return ['Service','Cook'].map(grp=>{
+        const detailCards=['Service','Cook'].map(grp=>{
           const mods=Object.entries(MODULES).filter(([id,m])=>m.group===grp&&trains.some(t=>t.moduleId===id));
           if(!mods.length) return '';
           const grpColor=grp==='Service'?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
@@ -2996,19 +3033,33 @@ function renderDashboard() {
                 const pr=ev?Math.round(ps/ev*100):null;
                 const ref=Math.max(total,1);
                 const barCol=pr===null?'#9CA3AF':pr>=80?'#22C55E':pr>=50?'#F59E0B':'#EF4444';
+                const r=22,circ=2*Math.PI*r,filled=pr!==null?pr/100*circ:0;
+                const donut=`<svg width="56" height="56" viewBox="0 0 56 56" style="flex-shrink:0">
+                  <circle cx="28" cy="28" r="${r}" fill="none" stroke="#E5E7EB" stroke-width="6"/>
+                  <circle cx="28" cy="28" r="${r}" fill="none" stroke="${barCol}" stroke-width="6"
+                    stroke-dasharray="${filled.toFixed(1)} ${circ.toFixed(1)}"
+                    stroke-linecap="round" transform="rotate(-90 28 28)"/>
+                  <text x="28" y="32" text-anchor="middle" font-size="10" font-weight="800" fill="${barCol}" font-family="Sarabun,sans-serif">${pr!==null?pr+'%':'—'}</text>
+                </svg>`;
                 return `<div style="border-radius:12px;padding:14px;border:1.5px solid ${grpColor}20;background:linear-gradient(135deg,${grpColor}05 0%,white 60%)">
-                  <div style="display:flex;align-items:start;justify-content:space-between;margin-bottom:10px">
-                    <div style="flex:1;min-width:0;padding-right:8px">
-                      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px">${m.name}</div>
-                      <div style="display:flex;gap:10px;font-size:10px">
-                        <span style="color:var(--text3)">สอน <b style="color:var(--text2)">${total}</b></span>
-                        <span style="color:var(--text3)">ประเมิน <b style="color:var(--text2)">${ev}</b></span>
-                        <span style="color:var(--text3)">ผ่าน <b style="color:#22C55E">${ps}</b></span>
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                    ${donut}
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">${m.name}</div>
+                      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
+                        <div style="text-align:center;background:#F8FAFC;border-radius:6px;padding:4px 2px">
+                          <div style="font-size:14px;font-weight:800;color:var(--text)">${total}</div>
+                          <div style="font-size:9px;color:var(--text3)">สอน</div>
+                        </div>
+                        <div style="text-align:center;background:#F8FAFC;border-radius:6px;padding:4px 2px">
+                          <div style="font-size:14px;font-weight:800;color:#F59E0B">${ev}</div>
+                          <div style="font-size:9px;color:var(--text3)">ประเมิน</div>
+                        </div>
+                        <div style="text-align:center;background:#F0FDF4;border-radius:6px;padding:4px 2px">
+                          <div style="font-size:14px;font-weight:800;color:#22C55E">${ps}</div>
+                          <div style="font-size:9px;color:var(--text3)">ผ่าน</div>
+                        </div>
                       </div>
-                    </div>
-                    <div style="text-align:center;flex-shrink:0">
-                      <div style="font-size:20px;font-weight:800;color:${barCol};line-height:1">${pr!==null?pr+'%':'—'}</div>
-                      <div style="font-size:9px;color:var(--text3)">pass rate</div>
                     </div>
                   </div>
                   <div style="height:8px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:10px;background:#E5E7EB">
@@ -3024,6 +3075,7 @@ function renderDashboard() {
             </div>
           </div>`;
         }).join('');
+        return overviewChart+detailCards;
       })()}
     </div>
 
