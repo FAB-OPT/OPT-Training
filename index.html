@@ -2975,47 +2975,6 @@ function renderDashboard() {
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">อัตราผ่านประเมินรายModule</span><span style="font-size:11px;color:var(--text3)">เรียงจากสูงสุด · มีข้อมูล ${Object.entries(MODULES).filter(([id])=>trains.some(t=>t.moduleId===id)).length} Module</span></div>
-      ${(()=>{
-        const modData=Object.entries(MODULES).map(([id,m])=>{
-          const mt=trains.filter(t=>t.moduleId===id);
-          const total=mt.length, ev=mt.filter(t=>t.eval).length, ps=mt.filter(t=>t.eval&&isEvalPass(t.eval.result)).length;
-          return {id,name:m.name,group:m.group,total,ev,ps,pr:ev?Math.round(ps/ev*100):null};
-        }).filter(d=>d.total>0).sort((a,b)=>(b.pr??-1)-(a.pr??-1));
-        if(!modData.length) return '<p class="text-muted">ยังไม่มีข้อมูล</p>';
-        return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 28px">
-          ${modData.map(d=>{
-            const isSv=d.group==='Service';
-            const dot=isSv?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
-            const barCol=d.pr===null?'#9CA3AF':d.pr>=80?'#22C55E':d.pr>=50?'#F59E0B':'#EF4444';
-            return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-                <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1">
-                  <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0"></div>
-                  <span style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name}</span>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:8px">
-                  <span style="font-size:10px;color:var(--text3)">สอน ${d.total}</span>
-                  <span style="font-size:12px;font-weight:800;color:${barCol};min-width:30px;text-align:right">${d.pr!==null?d.pr+'%':'—'}</span>
-                </div>
-              </div>
-              <div style="height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;display:flex">
-                <div style="height:100%;width:${Math.round(d.ps/Math.max(d.total,1)*100)}%;background:#22C55E;border-radius:4px 0 0 4px"></div>
-                <div style="height:100%;width:${Math.round((d.ev-d.ps)/Math.max(d.total,1)*100)}%;background:#EF4444"></div>
-                <div style="height:100%;width:${Math.round((d.total-d.ev)/Math.max(d.total,1)*100)}%;background:#E5E7EB"></div>
-              </div>
-            </div>`;
-          }).join('')}
-        </div>
-        <div style="display:flex;gap:14px;margin-top:10px;font-size:10px;color:var(--text3)">
-          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#22C55E;display:inline-block"></span>ผ่าน</span>
-          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#EF4444;display:inline-block"></span>ไม่ผ่าน</span>
-          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#E5E7EB;display:inline-block"></span>ยังไม่ประเมิน</span>
-        </div>`;
-      })()}
-    </div>
-
-    <div class="card" style="margin-bottom:16px">
       <div class="card-header"><span class="card-title">รายละเอียดการสอนตาม Module</span></div>
       ${(()=>{
         const gLabel={'Service':'พนักงานบริการ','Cook':'พนักงานครัว'};
