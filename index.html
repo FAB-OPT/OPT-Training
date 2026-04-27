@@ -2971,6 +2971,37 @@ function renderDashboard() {
               </div>
             </div>`).join('')+(pending.length>3?`<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center">และอีก ${pending.length-3} รายการ</div>`:'')}
         </div>
+        ${Object.keys(byPos).length?`
+        <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px">แยกตามตำแหน่ง</div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            ${Object.entries(byPos).sort((a,b)=>b[1].trained-a[1].trained).map(([pos,d])=>{
+              const col=grpHex[d.group]||'#9CA3AF';
+              const pr=d.evaled?Math.round(d.passed/d.evaled*100):null;
+              const barCol=pr===null?'#9CA3AF':pr>=80?'#22C55E':pr>=50?'#F59E0B':'#EF4444';
+              const psPct=Math.round(d.passed/Math.max(d.trained,1)*100);
+              const flPct=Math.round((d.evaled-d.passed)/Math.max(d.trained,1)*100);
+              const nePct=100-psPct-flPct;
+              return `<div style="padding:8px 10px;border-radius:8px;background:${col}08;border:1px solid ${col}15">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <div style="width:6px;height:6px;border-radius:50%;background:${col};flex-shrink:0"></div>
+                    <span style="font-size:11px;font-weight:600;color:var(--text)">${pos}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:10px;color:var(--text3)">${d.trained} ครั้ง</span>
+                    <span style="font-size:12px;font-weight:800;color:${barCol}">${pr!==null?pr+'%':'—'}</span>
+                  </div>
+                </div>
+                <div style="height:6px;border-radius:3px;overflow:hidden;display:flex;background:#E5E7EB">
+                  <div style="height:100%;width:${psPct}%;background:#22C55E"></div>
+                  <div style="height:100%;width:${flPct}%;background:#EF4444"></div>
+                  <div style="height:100%;width:${nePct}%;background:#D1D5DB"></div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`:''}
       </div>
     </div>
 
