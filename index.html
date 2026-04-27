@@ -2843,7 +2843,7 @@ function renderDashboard() {
       return `<path d="M${cx},${cy} L${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${lg},1 ${x2.toFixed(1)},${y2.toFixed(1)} Z" fill="${color}" style="cursor:pointer" onclick="showEmpGroupModal('${bid}','${g.replace(/'/g,'\\\'')}')" title="${g}"/>`;
     }).join('');
 
-    return `
+    return `<div style="zoom:1.12">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px">
       <div style="background:linear-gradient(135deg,#1D4ED8,#3B82F6);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #3B82F625">
         <div style="font-size:10px;font-weight:700;opacity:.75;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">พนักงานทั้งหมด</div>
@@ -3096,7 +3096,7 @@ function renderDashboard() {
           <div style="align-self:center;flex-shrink:0">${badge}</div>
         </div>`;
       }).join('')}
-    </div>`;
+    </div></div>`;
   })()}`;
 }
 
