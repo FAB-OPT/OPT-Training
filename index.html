@@ -761,25 +761,23 @@
 
       <!-- TABS -->
       <div class="login-tabs">
-        <button class="login-tab active" onclick="switchLoginTab('branch')">เข้าสู่ระบบสาขา</button>
-        <button class="login-tab" onclick="switchLoginTab('admin')">เข้าสู่ระบบ Admin</button>
+        <button class="login-tab active" onclick="switchLoginTab('branch')">สาขา</button>
+        <button class="login-tab" onclick="switchLoginTab('admin')">Admin</button>
       </div>
 
       <!-- Branch Form -->
       <div class="login-form active" id="login-branch-form">
-        <h2 class="login-section-title">ล็อกอินสาขา</h2>
         <p class="login-section-sub">กรอกรหัสสาขา 4 หลัก</p>
         <div class="pin-boxes" id="branch-pin-boxes"></div>
-        <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบสาขา</button>
+        <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบ</button>
         <div class="login-msg error" id="login-error-branch"></div>
       </div>
 
       <!-- Admin Form -->
       <div class="login-form" id="login-admin-form">
-        <h2 class="login-section-title">ล็อกอิน Admin</h2>
         <p class="login-section-sub">กรอกรหัส Admin 6 หลัก</p>
         <div class="pin-boxes" id="admin-pin-boxes"></div>
-        <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบ Admin</button>
+        <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบ</button>
         <div class="login-msg error" id="login-error-admin"></div>
       </div>
     </div>
