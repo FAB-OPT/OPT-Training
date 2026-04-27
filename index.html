@@ -2878,25 +2878,19 @@ function renderDashboard() {
     <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-bottom:16px;align-items:start">
       <div class="card" style="margin:0">
         <div class="card-header"><span class="card-title">ข้อมูลพนักงาน</span><span style="font-size:11px;color:var(--text3)">กดประเภทเพื่อดูรายชื่อ</span></div>
-        <div style="display:grid;grid-template-columns:160px 1fr 1fr;gap:24px;align-items:start">
-          <!-- แยกตามประเภท: donut -->
+        <div style="display:grid;grid-template-columns:140px 1fr 1fr;gap:24px;align-items:start">
+          <!-- แยกตามประเภท: legend only -->
           <div>
             <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">แยกตามประเภท</div>
-            <div style="display:flex;flex-direction:column;align-items:center">
-              <svg width="120" height="120" viewBox="0 0 160 160">
-                ${totalActive?slices:`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#E5E7EB"/>`}
-                ${totalActive?`<circle cx="${cx}" cy="${cy}" r="40" fill="white"/><text x="${cx}" y="${cy-5}" text-anchor="middle" font-size="26" font-weight="800" fill="#1C1C1E">${totalActive}</text><text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="11" fill="#6B7280">คน</text>`:''}
-              </svg>
-              <div style="width:100%;margin-top:10px;display:flex;flex-direction:column;gap:5px">
-                ${pieGroups.map(({g,n,color})=>`
-                  <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:8px;cursor:pointer;background:${color}0D;border-left:3px solid ${color}" onclick="showEmpGroupModal('${bid}','${g.replace(/'/g,"\\'")}')">
-                    <span style="font-size:11px;font-weight:600;color:${color}">${g.replace('พนักงาน','').replace('ทีม','')}</span>
-                    <div style="display:flex;align-items:center;gap:6px">
-                      <span style="font-size:12px;font-weight:800;color:${color}">${n}</span>
-                      <span style="font-size:9px;color:${color};opacity:.6">คน›</span>
-                    </div>
-                  </div>`).join('')}
-              </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              ${pieGroups.map(({g,n,color})=>`
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:8px;cursor:pointer;background:${color}0D;border-left:3px solid ${color}" onclick="showEmpGroupModal('${bid}','${g.replace(/'/g,"\\'")}')">
+                  <span style="font-size:11px;font-weight:600;color:${color}">${g.replace('พนักงาน','').replace('ทีม','')}</span>
+                  <div style="display:flex;align-items:center;gap:4px">
+                    <span style="font-size:14px;font-weight:800;color:${color}">${n}</span>
+                    <span style="font-size:10px;color:${color};opacity:.6">คน›</span>
+                  </div>
+                </div>`).join('')}
             </div>
           </div>
           <!-- แยกตามตำแหน่ง: vertical bars sorted desc -->
