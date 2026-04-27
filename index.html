@@ -2902,10 +2902,10 @@ function renderDashboard() {
               const allPos=Object.keys(POSITION_BY_GROUP).flatMap(g=>POSITION_BY_GROUP[g].map(pos=>({pos,color:grpHex[g]||'#9CA3AF',cnt:activeEmps.filter(e=>e.position===pos).length}))).filter(({cnt})=>cnt>0);
               const maxC=Math.max(...allPos.map(x=>x.cnt),1);
               return allPos.map(({pos,cnt,color})=>`
-                <div style="margin-bottom:7px">
+                <div style="margin-bottom:7px;cursor:pointer;border-radius:6px;padding:3px 4px;transition:background .15s" onclick="showEmpPositionModal('${bid}','${pos.replace(/'/g,"\\'")}')">
                   <div style="display:flex;justify-content:space-between;margin-bottom:3px">
                     <span style="font-size:10.5px;color:var(--text2)">${pos}</span>
-                    <span style="font-size:10.5px;font-weight:700;color:${color}">${cnt}</span>
+                    <span style="font-size:10.5px;font-weight:700;color:${color}">${cnt} <span style="font-size:9px;opacity:.6">ดูรายชื่อ›</span></span>
                   </div>
                   <div style="height:7px;background:var(--surface2);border-radius:4px;overflow:hidden">
                     <div style="height:100%;width:${Math.round(cnt/maxC*100)}%;background:${color};border-radius:4px"></div>
@@ -2927,15 +2927,17 @@ function renderDashboard() {
               };
               const counts=bk.map(([,mn,mx])=>activeEmps.filter(e=>{const m=gm(e);return m>=mn&&m<mx;}).length);
               const maxC=Math.max(...counts,1);
-              return bk.map(([lbl,,,col],i)=>`
-                <div style="margin-bottom:9px">
-                  <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-                    <span style="font-size:10.5px;color:var(--text2)">${lbl}</span>
-                    <span style="font-size:11px;font-weight:700;color:${col}">${counts[i]} คน</span>
+              return bk.map(([lbl,mn,mx,col],i)=>`
+                <div style="margin-bottom:9px;cursor:pointer;border-radius:6px;padding:3px 4px;transition:background .15s" onclick="showEmpTenureModal('${bid}','${lbl}',${mn},${mx})">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                    <span style="font-size:11px;color:var(--text2)">${lbl}</span>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span style="font-size:13px;font-weight:800;color:${col}">${totalActive?Math.round(counts[i]/totalActive*100):0}%</span>
+                      <span style="font-size:11px;font-weight:700;color:${col}">${counts[i]} คน <span style="font-size:9px;opacity:.6">›</span></span>
+                    </div>
                   </div>
-                  <div style="height:9px;background:var(--surface2);border-radius:5px;overflow:hidden;position:relative">
+                  <div style="height:9px;background:var(--surface2);border-radius:5px;overflow:hidden">
                     <div style="height:100%;width:${Math.round(counts[i]/maxC*100)}%;background:${col};border-radius:5px"></div>
-                    ${counts[i]&&Math.round(counts[i]/maxC*100)>18?`<span style="position:absolute;left:5px;top:0;line-height:9px;font-size:7px;color:white;font-weight:700">${totalActive?Math.round(counts[i]/totalActive*100):0}%</span>`:''}
                   </div>
                 </div>`).join('');
             })()}
@@ -2982,7 +2984,7 @@ function renderDashboard() {
               const psPct=Math.round(d.passed/Math.max(d.trained,1)*100);
               const flPct=Math.round((d.evaled-d.passed)/Math.max(d.trained,1)*100);
               const nePct=100-psPct-flPct;
-              return `<div style="padding:8px 10px;border-radius:8px;background:${col}08;border:1px solid ${col}15">
+              return `<div style="padding:8px 10px;border-radius:8px;background:${col}08;border:1px solid ${col}15;cursor:pointer" onclick="showEmpPositionModal('${bid}','${pos.replace(/'/g,"\\'")}')">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
                   <div style="display:flex;align-items:center;gap:6px">
                     <div style="width:6px;height:6px;border-radius:50%;background:${col};flex-shrink:0"></div>
@@ -2991,6 +2993,7 @@ function renderDashboard() {
                   <div style="display:flex;align-items:center;gap:8px">
                     <span style="font-size:10px;color:var(--text3)">${d.trained} ครั้ง</span>
                     <span style="font-size:12px;font-weight:800;color:${barCol}">${pr!==null?pr+'%':'—'}</span>
+                    <span style="font-size:9px;color:var(--text3)">ดูรายชื่อ›</span>
                   </div>
                 </div>
                 <div style="height:6px;border-radius:3px;overflow:hidden;display:flex;background:#E5E7EB">
@@ -3155,6 +3158,31 @@ function showEmpPositionModal(bid, pos) {
         <td style="font-weight:600">${e.name}</td>
         <td><span style="font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:4px">${calcTenureShort(e.startDate)}</span></td>
       </tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:24px">ไม่มีพนักงาน</td></tr>'}</tbody>
+    </table></div>`, null, 'ปิด');
+}
+
+function showEmpTenureModal(bid, label, minMo, maxMo) {
+  const getMonths = e => {
+    if (!e.startDate) return -1;
+    const s = new Date(e.startDate); if (isNaN(s)) return -1;
+    const n = new Date(new Date().getTime() + 7*60*60*1000);
+    let y = n.getFullYear()-s.getFullYear(), mo = n.getMonth()-s.getMonth();
+    if (n.getDate() < s.getDate()) mo--;
+    if (mo < 0) { y--; mo += 12; } return y*12+mo;
+  };
+  const es = getBranchEmployees(bid).filter(e => {
+    if (e.status !== 'active') return false;
+    const m = getMonths(e); return m >= minMo && m < maxMo;
+  });
+  showModal(`${label} (${es.length} คน)`, `
+    <div class="table-wrap"><table>
+      <thead><tr><th>รหัส</th><th>ชื่อ</th><th>ตำแหน่ง</th><th>อายุงาน</th></tr></thead>
+      <tbody>${es.length ? es.map(e=>`<tr>
+        <td style="font-family:monospace;font-size:12px;color:var(--text2)">${e.empCode||'—'}</td>
+        <td style="font-weight:600">${e.name}</td>
+        <td style="font-size:12px;color:var(--text2)">${e.position}</td>
+        <td><span style="font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:4px">${calcTenureShort(e.startDate)}</span></td>
+      </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:24px">ไม่มีพนักงาน</td></tr>'}</tbody>
     </table></div>`, null, 'ปิด');
 }
 
