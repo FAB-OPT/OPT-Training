@@ -2954,171 +2954,79 @@ function renderDashboard() {
         </div>
       </div>
       <div class="card" style="margin:0">
-        <div class="card-header"><span class="card-title">ภาพรวมการฝึกอบรม</span></div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-          ${[['📋','บันทึกทั้งหมด',trains.length,'#64748B'],['📝','ประเมินแล้ว',evaled.length,'#F59E0B'],['✅','ผ่านเกณฑ์',evaled.filter(t=>isEvalPass(t.eval.result)).length,'#22C55E']].map(([ico,lbl,val,col])=>`
-            <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;background:${col}0D;border:1px solid ${col}20">
-              <span style="font-size:22px">${ico}</span>
-              <div style="flex:1">
-                <div style="font-size:10px;color:var(--text3);margin-bottom:1px">${lbl}</div>
-                <div style="font-size:24px;font-weight:800;color:${col};line-height:1.1">${val}</div>
-              </div>
-              <div style="text-align:right">
-                <div style="font-size:16px;font-weight:700;color:${col}">${trains.length?Math.round(val/trains.length*100):0}%</div>
-                <div style="font-size:9px;color:var(--text3)">ของทั้งหมด</div>
-              </div>
-            </div>`).join('')}
-        </div>
-        <div style="border-top:1px solid var(--border);padding-top:12px">
-          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px">รอประเมิน ${pending.length?'('+pending.length+')':''}</div>
-          ${pending.length===0
-            ?'<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px">ไม่มีรายการรอประเมิน ✓</div>'
-            :pending.slice(0,3).map(t=>`
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
-              <div style="width:6px;height:6px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>
-              <div style="flex:1;min-width:0">
-                <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${MODULES[t.moduleId]?.name||'—'}</div>
-                <div style="font-size:10px;color:var(--text3)">${fmtDate(t.date)} · ${(t.traineeIds||[]).length} คน</div>
-              </div>
-            </div>`).join('')+(pending.length>3?`<div style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center">และอีก ${pending.length-3} รายการ</div>`:'')}
-        </div>
-        ${Object.keys(byPos).length?`
-        <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
-          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px">แยกตามตำแหน่ง</div>
-          <div style="display:flex;flex-direction:column;gap:7px">
-            ${Object.entries(byPos).sort((a,b)=>b[1].trained-a[1].trained).map(([pos,d])=>{
-              const col=grpHex[d.group]||'#9CA3AF';
-              const pr=d.evaled?Math.round(d.passed/d.evaled*100):null;
-              const barCol=pr===null?'#9CA3AF':pr>=80?'#22C55E':pr>=50?'#F59E0B':'#EF4444';
-              const psPct=Math.round(d.passed/Math.max(d.trained,1)*100);
-              const flPct=Math.round((d.evaled-d.passed)/Math.max(d.trained,1)*100);
-              const nePct=100-psPct-flPct;
-              return `<div style="padding:8px 10px;border-radius:8px;background:${col}08;border:1px solid ${col}15;cursor:pointer" onclick="showEmpPositionModal('${bid}','${pos.replace(/'/g,"\\'")}')">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-                  <div style="display:flex;align-items:center;gap:6px">
-                    <div style="width:6px;height:6px;border-radius:50%;background:${col};flex-shrink:0"></div>
-                    <span style="font-size:11px;font-weight:600;color:var(--text)">${pos}</span>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:8px">
-                    <span style="font-size:10px;color:var(--text3)">${d.trained} ครั้ง</span>
-                    <span style="font-size:12px;font-weight:800;color:${barCol}">${pr!==null?pr+'%':'—'}</span>
-                    <span style="font-size:9px;color:var(--text3)">ดูรายชื่อ›</span>
-                  </div>
+      <div class="card" style="margin:0">
+        <div class="card-header"><span class="card-title">การสอนแยกตามตำแหน่ง</span><span style="font-size:11px;color:var(--text3)">กดดูว่าสอนอะไรไปบ้าง</span></div>
+        ${Object.keys(byPos).length?`<div style="display:flex;flex-direction:column;gap:8px">
+          ${Object.entries(byPos).sort((a,b)=>b[1].trained-a[1].trained).map(([pos,d])=>{
+            const col=grpHex[d.group]||'#9CA3AF';
+            const pr=d.evaled?Math.round(d.passed/d.evaled*100):null;
+            const barCol=pr===null?'#9CA3AF':pr>=80?'#22C55E':pr>=50?'#F59E0B':'#EF4444';
+            const psPct=Math.round(d.passed/Math.max(d.trained,1)*100);
+            const flPct=Math.round((d.evaled-d.passed)/Math.max(d.trained,1)*100);
+            const nePct=100-psPct-flPct;
+            return `<div style="padding:10px 12px;border-radius:10px;background:${col}08;border:1px solid ${col}20;cursor:pointer" onclick="showPositionTrainingModal('${bid}','${pos.replace(/'/g,"\\'")}')">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <div style="width:8px;height:8px;border-radius:50%;background:${col}"></div>
+                  <span style="font-size:12px;font-weight:700;color:var(--text)">${pos}</span>
                 </div>
-                <div style="height:6px;border-radius:3px;overflow:hidden;display:flex;background:#E5E7EB">
-                  <div style="height:100%;width:${psPct}%;background:#22C55E"></div>
-                  <div style="height:100%;width:${flPct}%;background:#EF4444"></div>
-                  <div style="height:100%;width:${nePct}%;background:#D1D5DB"></div>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:10px;color:var(--text3)">${d.trained} ครั้ง</span>
+                  <span style="font-size:13px;font-weight:800;color:${barCol}">${pr!==null?pr+'%':'—'}</span>
+                  <span style="font-size:10px;color:${col};font-weight:600">ดูการสอน ›</span>
                 </div>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>`:''}
+              </div>
+              <div style="height:6px;border-radius:3px;overflow:hidden;display:flex;background:#E5E7EB">
+                <div style="height:100%;width:${psPct}%;background:#22C55E"></div>
+                <div style="height:100%;width:${flPct}%;background:#EF4444"></div>
+                <div style="height:100%;width:${nePct}%;background:#D1D5DB"></div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`:'<p class="text-muted" style="text-align:center;padding:24px 0">ยังไม่มีข้อมูลการสอน</p>'}
       </div>
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">รายละเอียดการสอนตาม Module</span></div>
+      <div class="card-header"><span class="card-title">สรุปการสอนรายเดือน</span></div>
       ${(()=>{
-        const allModData=Object.entries(MODULES).map(([id,m])=>{
-          const mt=trains.filter(t=>t.moduleId===id);
-          const total=mt.length,ev=mt.filter(t=>t.eval).length,ps=mt.filter(t=>t.eval&&isEvalPass(t.eval.result)).length;
-          return {id,name:m.name,group:m.group,total,ev,ps,fl:ev-ps,notEv:total-ev,pr:ev?Math.round(ps/ev*100):null};
-        }).filter(d=>d.total>0);
-        if(!allModData.length) return '<p class="text-muted">ยังไม่มีข้อมูล</p>';
-        const sorted=[...allModData].sort((a,b)=>(b.pr??-1)-(a.pr??-1));
-        const maxTotal=Math.max(...allModData.map(d=>d.total),1);
-        const overviewChart=`<div style="margin-bottom:20px;padding:16px;background:var(--surface2);border-radius:12px">
-          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:12px">เปรียบเทียบ Pass Rate ทุก Module</div>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            ${sorted.map(d=>{
-              const isSv=d.group==='Service';
-              const dot=isSv?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
-              const barCol=d.pr===null?'#9CA3AF':d.pr>=80?'#22C55E':d.pr>=50?'#F59E0B':'#EF4444';
-              const psPct=Math.round(d.ps/Math.max(d.total,1)*100);
-              const flPct=Math.round(d.fl/Math.max(d.total,1)*100);
-              const nePct=Math.round(d.notEv/Math.max(d.total,1)*100);
-              return `<div style="display:flex;align-items:center;gap:8px">
-                <div style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0"></div>
-                <div style="font-size:11px;color:var(--text);width:200px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name}</div>
-                <div style="flex:1;height:14px;border-radius:7px;overflow:hidden;background:#E5E7EB;display:flex">
-                  <div style="height:100%;width:${psPct}%;background:#22C55E;transition:width 0.4s"></div>
-                  <div style="height:100%;width:${flPct}%;background:#EF4444"></div>
-                  <div style="height:100%;width:${nePct}%;background:#D1D5DB"></div>
-                </div>
-                <div style="font-size:11px;font-weight:800;color:${barCol};width:36px;text-align:right;flex-shrink:0">${d.pr!==null?d.pr+'%':'—'}</div>
-                <div style="font-size:10px;color:var(--text3);width:32px;flex-shrink:0">${d.total} ครั้ง</div>
-              </div>`;
-            }).join('')}
-          </div>
-          <div style="display:flex;gap:14px;margin-top:10px;font-size:10px;color:var(--text3)">
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#22C55E;display:inline-block"></span>ผ่าน</span>
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#EF4444;display:inline-block"></span>ไม่ผ่าน</span>
-            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height=6px;border-radius:2px;background:#D1D5DB;display:inline-block"></span>ยังไม่ประเมิน</span>
-          </div>
-        </div>`;
-        const gLabel={'Service':'พนักงานบริการ','Cook':'พนักงานครัว'};
-        const detailCards=['Service','Cook'].map(grp=>{
-          const mods=Object.entries(MODULES).filter(([id,m])=>m.group===grp&&trains.some(t=>t.moduleId===id));
-          if(!mods.length) return '';
-          const grpColor=grp==='Service'?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
-          const grpBdg=grp==='Service'?grpBadge['พนักงานบริการ']:grpBadge['พนักงานครัว'];
-          return `<div style="margin-bottom:20px">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid ${grpColor}25">
-              <div style="width:4px;height:18px;background:${grpColor};border-radius:2px"></div>
-              <span style="font-size:13px;font-weight:700;color:${grpColor}">${gLabel[grp]}</span>
-              <span class="badge ${grpBdg}" style="font-size:10px">${mods.length} Module</span>
+        if(!trains.length) return '<p class="text-muted" style="text-align:center;padding:24px 0">ยังไม่มีข้อมูล</p>';
+        const byMonth={};
+        trains.forEach(t=>{
+          const ym=t.date?t.date.slice(0,7):'unknown';
+          if(!byMonth[ym]) byMonth[ym]={total:0,evaled:0,passed:0};
+          byMonth[ym].total++;
+          if(t.eval){byMonth[ym].evaled++;if(isEvalPass(t.eval.result))byMonth[ym].passed++;}
+        });
+        const months=Object.keys(byMonth).filter(m=>m!=='unknown').sort().slice(-6);
+        if(!months.length) return '<p class="text-muted" style="text-align:center;padding:24px 0">ยังไม่มีข้อมูล</p>';
+        const maxTotal=Math.max(...months.map(m=>byMonth[m].total),1);
+        const thNames=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+        const rows=months.map(ym=>{
+          const d=byMonth[ym];
+          const [y,m]=ym.split('-');
+          const lbl=thNames[parseInt(m)-1]+' '+(parseInt(y)+543-2500).toString().slice(-2);
+          const pr=d.evaled?Math.round(d.passed/d.evaled*100):null;
+          const barCol=pr===null?'#6366F1':pr>=80?'#22C55E':pr>=50?'#F59E0B':'#EF4444';
+          const barW=Math.round(d.total/maxTotal*100);
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="width:54px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--text2)">${lbl}</div>
+            <div style="flex:1;height:20px;border-radius:6px;overflow:hidden;background:#F1F5F9">
+              <div style="height:100%;width:${barW}%;background:${barCol};border-radius:6px;display:flex;align-items:center;padding-left:7px;transition:width .4s">
+                ${barW>18?`<span style="font-size:10px;font-weight:700;color:white">${d.total} ครั้ง</span>`:''}
+              </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-              ${mods.map(([id,m])=>{
-                const mt=trains.filter(t=>t.moduleId===id);
-                const total=mt.length,ev=mt.filter(t=>t.eval).length,ps=mt.filter(t=>t.eval&&isEvalPass(t.eval.result)).length,fl=ev-ps,notEv=total-ev;
-                const pr=ev?Math.round(ps/ev*100):null;
-                const ref=Math.max(total,1);
-                const barCol=pr===null?'#9CA3AF':pr>=80?'#22C55E':pr>=50?'#F59E0B':'#EF4444';
-                const r=22,circ=2*Math.PI*r,filled=pr!==null?pr/100*circ:0;
-                const donut=`<svg width="56" height="56" viewBox="0 0 56 56" style="flex-shrink:0">
-                  <circle cx="28" cy="28" r="${r}" fill="none" stroke="#E5E7EB" stroke-width="6"/>
-                  <circle cx="28" cy="28" r="${r}" fill="none" stroke="${barCol}" stroke-width="6"
-                    stroke-dasharray="${filled.toFixed(1)} ${circ.toFixed(1)}"
-                    stroke-linecap="round" transform="rotate(-90 28 28)"/>
-                  <text x="28" y="32" text-anchor="middle" font-size="10" font-weight="800" fill="${barCol}" font-family="Sarabun,sans-serif">${pr!==null?pr+'%':'—'}</text>
-                </svg>`;
-                return `<div style="border-radius:12px;padding:14px;border:1.5px solid ${grpColor}20;background:linear-gradient(135deg,${grpColor}05 0%,white 60%)">
-                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-                    ${donut}
-                    <div style="flex:1;min-width:0">
-                      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px">${m.name}</div>
-                      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
-                        <div style="text-align:center;background:#F8FAFC;border-radius:6px;padding:4px 2px">
-                          <div style="font-size:14px;font-weight:800;color:var(--text)">${total}</div>
-                          <div style="font-size:9px;color:var(--text3)">สอน</div>
-                        </div>
-                        <div style="text-align:center;background:#F8FAFC;border-radius:6px;padding:4px 2px">
-                          <div style="font-size:14px;font-weight:800;color:#F59E0B">${ev}</div>
-                          <div style="font-size:9px;color:var(--text3)">ประเมิน</div>
-                        </div>
-                        <div style="text-align:center;background:#F0FDF4;border-radius:6px;padding:4px 2px">
-                          <div style="font-size:14px;font-weight:800;color:#22C55E">${ps}</div>
-                          <div style="font-size:9px;color:var(--text3)">ผ่าน</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div style="height:8px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:10px;background:#E5E7EB">
-                    <div style="height:100%;width:${Math.round(ps/ref*100)}%;background:#22C55E"></div>
-                    <div style="height:100%;width:${Math.round(fl/ref*100)}%;background:#EF4444"></div>
-                    <div style="height:100%;width:${Math.round(notEv/ref*100)}%;background:#D1D5DB"></div>
-                  </div>
-                  <div style="display:flex;flex-wrap:wrap;gap:3px">
-                    ${(m.subtopics||[]).map(s=>`<span style="font-size:9.5px;background:${grpColor}08;color:var(--text2);padding:2px 7px;border-radius:10px;border:1px solid ${grpColor}20">${s}</span>`).join('')}
-                  </div>
-                </div>`;
-              }).join('')}
-            </div>
+            ${barW<=18?`<span style="font-size:10px;font-weight:700;color:var(--text2)">${d.total} ครั้ง</span>`:''}
+            <div style="width:44px;text-align:right;font-size:12px;font-weight:800;color:${barCol};flex-shrink:0">${pr!==null?pr+'%':'—'}</div>
           </div>`;
         }).join('');
-        return overviewChart+detailCards;
+        return `<div>${rows}</div>
+        <div style="display:flex;gap:12px;justify-content:center;font-size:10px;color:var(--text3);padding-top:10px;margin-top:2px">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#22C55E;display:inline-block"></span>≥80%</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#F59E0B;display:inline-block"></span>50–79%</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#EF4444;display:inline-block"></span>&lt;50%</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#6366F1;display:inline-block"></span>ยังไม่ประเมิน</span>
+        </div>`;
       })()}
     </div>
 
@@ -3168,6 +3076,41 @@ function showEmpPositionModal(bid, pos) {
         <td><span style="font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:4px">${calcTenureShort(e.startDate)}</span></td>
       </tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:24px">ไม่มีพนักงาน</td></tr>'}</tbody>
     </table></div>`, null, 'ปิด');
+}
+
+function showPositionTrainingModal(bid, pos) {
+  const ts = getBranchTrainings(bid).filter(t=>(t.traineeIds||[]).some(tid=>{const e=getEmployee(tid);return e&&e.position===pos;}));
+  if(!ts.length){showModal('การสอน: '+pos,'<p class="text-muted" style="text-align:center;padding:24px 0">ยังไม่มีบันทึกการสอน</p>',null,'ปิด');return;}
+  const byMod={};
+  ts.forEach(t=>{
+    if(!byMod[t.moduleId]) byMod[t.moduleId]={name:MODULES[t.moduleId]?.name||t.moduleId,subtopics:{},sessions:[],evaled:0,passed:0};
+    const d=byMod[t.moduleId];
+    d.sessions.push(t);
+    if(t.eval){d.evaled++;if(isEvalPass(t.eval.result))d.passed++;}
+    (t.subtopics||[]).forEach(s=>{d.subtopics[s]=(d.subtopics[s]||0)+1;});
+  });
+  const grpHexM={'พนักงานบริการ':'#22C55E','พนักงานครัว':'#EF4444','ทีมผู้จัดการสาขา':'#3B82F6'};
+  const sampleEmp=getBranchEmployees(bid).find(e=>e.position===pos);
+  const col=grpHexM[getPositionGroup(sampleEmp?.position||pos)]||'#6366F1';
+  showModal('การสอน: '+pos+' ('+ts.length+' ครั้ง)', `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${Object.entries(byMod).sort((a,b)=>b[1].sessions.length-a[1].sessions.length).map(([id,d])=>{
+        const pr=d.evaled?Math.round(d.passed/d.evaled*100):null;
+        const barCol=pr===null?'#9CA3AF':pr>=80?'#22C55E':pr>=50?'#F59E0B':'#EF4444';
+        return `<div style="border:1px solid ${col}20;border-radius:10px;padding:12px;background:${col}04">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:700;color:var(--primary)">${d.name}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;color:var(--text3)">${d.sessions.length} ครั้ง</span>
+              <span style="font-size:13px;font-weight:800;color:${barCol}">${pr!==null?pr+'%':'—'}</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            ${Object.entries(d.subtopics).sort((a,b)=>b[1]-a[1]).map(([s,cnt])=>`<span style="font-size:11px;background:${col}0F;color:var(--text2);padding:3px 9px;border-radius:12px;border:1px solid ${col}25">${s} <span style="font-weight:700;color:${col}">${cnt}</span></span>`).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`, null, 'ปิด');
 }
 
 function showEmpTenureModal(bid, label, minMo, maxMo) {
