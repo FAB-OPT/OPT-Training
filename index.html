@@ -2698,7 +2698,7 @@ function showPage(page) {
     'admin-reports': renderAdminReports,
   };
   if (pages[page]) document.getElementById('main-content').innerHTML = pages[page]();
-  if (page === 'dashboard') { _dashMonth = null; renderDashMonthChart(getBranchId()); }
+  if (page === 'dashboard') { _dashMonth = null; renderDashMonthChart(getBranchId()); renderDashPosPage(getBranchId()); }
   updateBottomNav(page);
 }
 
@@ -2846,22 +2846,22 @@ function renderDashboard() {
 
     return `<div style="zoom:1.12">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px">
-      <div style="background:linear-gradient(135deg,#1D4ED8,#3B82F6);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #3B82F625">
+      <div style="background:linear-gradient(135deg,#1D4ED8,#3B82F6);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #3B82F625;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 22px #3B82F640'" onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 14px #3B82F640'" onclick="showAllEmployeesModal('${bid}')">
         <div style="font-size:10px;font-weight:700;opacity:.75;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">พนักงานทั้งหมด</div>
         <div style="font-size:40px;font-weight:800;line-height:1;margin-bottom:6px">${emps.length}</div>
         <div style="font-size:11px;opacity:.75">${totalActive} ทำงาน · ${emps.length-totalActive} ลาออก</div>
       </div>
-      <div style="background:linear-gradient(135deg,#15803D,#22C55E);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #22C55E25">
+      <div style="background:linear-gradient(135deg,#15803D,#22C55E);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #22C55E25;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 22px #22C55E40'" onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 14px #22C55E40'" onclick="showPage('trainings')">
         <div style="font-size:10px;font-weight:700;opacity:.75;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">บันทึกการสอน</div>
         <div style="font-size:40px;font-weight:800;line-height:1;margin-bottom:6px">${trains.length}</div>
         <div style="font-size:11px;opacity:.75">${evaled.length} ประเมินแล้ว · ${trains.length-evaled.length} รอ</div>
       </div>
-      <div style="background:linear-gradient(135deg,#B45309,#F59E0B);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #F59E0B25">
+      <div style="background:linear-gradient(135deg,#B45309,#F59E0B);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #F59E0B25;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 22px #F59E0B40'" onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 14px #F59E0B40'" onclick="showPendingModal('${bid}')">
         <div style="font-size:10px;font-weight:700;opacity:.75;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">รอประเมินผล</div>
         <div style="font-size:40px;font-weight:800;line-height:1;margin-bottom:6px">${pending.length}</div>
         <div style="font-size:11px;opacity:.75">ภายใน 14 วันนับจากวันสอน</div>
       </div>
-      <div style="background:linear-gradient(135deg,#6D28D9,#8B5CF6);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #8B5CF625;display:flex;align-items:center;gap:10px">
+      <div style="background:linear-gradient(135deg,#6D28D9,#8B5CF6);border-radius:14px;padding:18px 20px;color:white;box-shadow:0 4px 14px #8B5CF625;display:flex;align-items:center;gap:10px;cursor:pointer;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 22px #8B5CF640'" onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 14px #8B5CF640'" onclick="showPassRateModal('${bid}')">
         <div style="flex:1">
           <div style="font-size:10px;font-weight:700;opacity:.75;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px">อัตราผ่านประเมิน</div>
           <div style="font-size:40px;font-weight:800;line-height:1;margin-bottom:6px">${passRate}%</div>
@@ -2876,7 +2876,7 @@ function renderDashboard() {
         </svg>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-bottom:16px;align-items:start">
+    <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;margin-bottom:16px;align-items:stretch">
       <div class="card" style="margin:0">
         <div class="card-header"><span class="card-title">ข้อมูลพนักงาน</span><span style="font-size:11px;color:var(--text3)">กดประเภทเพื่อดูรายชื่อ</span></div>
         <div style="display:grid;grid-template-columns:140px 1fr 1fr;gap:24px;align-items:start">
@@ -2955,41 +2955,14 @@ function renderDashboard() {
         </div>
       </div>
       <div class="card" style="margin:0">
-      <div class="card" style="margin:0">
-        <div class="card-header"><span class="card-title">การสอนแยกตามตำแหน่ง</span><span style="font-size:11px;color:var(--text3)">กดดูว่าสอนอะไรไปบ้าง</span></div>
-        ${Object.keys(byPos).length?`<div style="display:flex;flex-direction:column;gap:8px">
-          ${Object.entries(byPos).sort((a,b)=>b[1].trained-a[1].trained).map(([pos,d])=>{
-            const col=grpHex[d.group]||'#9CA3AF';
-            const pr=d.evaled?Math.round(d.passed/d.evaled*100):null;
-            const barCol=pr===null?'#9CA3AF':pr>=80?'#22C55E':pr>=50?'#F59E0B':'#EF4444';
-            const psPct=Math.round(d.passed/Math.max(d.trained,1)*100);
-            const flPct=Math.round((d.evaled-d.passed)/Math.max(d.trained,1)*100);
-            const nePct=100-psPct-flPct;
-            return `<div style="padding:10px 12px;border-radius:10px;background:${col}08;border:1px solid ${col}20;cursor:pointer" onclick="showPositionTrainingModal('${bid}','${pos.replace(/'/g,"\\'")}')">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                <div style="display:flex;align-items:center;gap:7px">
-                  <div style="width:8px;height:8px;border-radius:50%;background:${col}"></div>
-                  <span style="font-size:12px;font-weight:700;color:var(--text)">${pos}</span>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px">
-                  <span style="font-size:10px;color:var(--text3)">${d.trained} ครั้ง</span>
-                  <span style="font-size:13px;font-weight:800;color:${barCol}">${pr!==null?pr+'%':'—'}</span>
-                  <span style="font-size:10px;color:${col};font-weight:600">ดูการสอน ›</span>
-                </div>
-              </div>
-              <div style="height:6px;border-radius:3px;overflow:hidden;display:flex;background:#E5E7EB">
-                <div style="height:100%;width:${psPct}%;background:#22C55E"></div>
-                <div style="height:100%;width:${flPct}%;background:#EF4444"></div>
-                <div style="height:100%;width:${nePct}%;background:#D1D5DB"></div>
-              </div>
-            </div>`;
-          }).join('')}
-        </div>`:'<p class="text-muted" style="text-align:center;padding:24px 0">ยังไม่มีข้อมูลการสอน</p>'}
-      </div>
+      <div class="card" style="margin:0;display:flex;flex-direction:column">
+        <div class="card-header" style="flex-shrink:0"><span class="card-title">การสอนแยกตามตำแหน่ง</span><span style="font-size:11px;color:var(--text3)">กดดูว่าสอนอะไรไปบ้าง</span></div>
+        <div id='dash-pos-list' style='flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:8px'></div>
     </div>
 
 
-    <div class="card" style="margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:3fr 2fr;gap:16px;align-items:stretch">
+    <div class="card" style="margin:0">
       <div class="card-header">
         <span class="card-title">สรุปการสอนรายเดือน</span>
         <div style="display:flex;align-items:center;gap:6px">
@@ -3001,8 +2974,8 @@ function renderDashboard() {
       <div id="dash-line-chart"></div>
     </div>
 
-    <div class="card">
-      <div class="card-header"><span class="card-title">บันทึกการสอนล่าสุด</span><button class="btn btn-sm btn-outline" onclick="showPage('trainings')">ดูทั้งหมด</button></div>
+    <div class="card" style="margin:0;display:flex;flex-direction:column">
+      <div class="card-header" style="flex-shrink:0"><span class="card-title">บันทึกการสอนล่าสุด</span><button class="btn btn-sm btn-outline" onclick="showPage('trainings')">ดูทั้งหมด</button></div>
       ${trains.length===0?'<p class="text-muted">ยังไม่มีบันทึก</p>':trains.slice(-5).reverse().map(t=>{
         const mod=MODULES[t.moduleId];
         const isSv=mod?.group==='Service';
@@ -3018,9 +2991,120 @@ function renderDashboard() {
           <div style="align-self:center;flex-shrink:0">${badge}</div>
         </div>`;
       }).join('')}
-    </div></div>`;
+    </div></div></div>`;
   })()}`;
 
+}
+
+let _dashPosPage = 0;
+
+function renderDashPosPage(bid) {
+  const el = document.getElementById('dash-pos-list');
+  if (!el) return;
+  const trains = getBranchTrainings(bid);
+  const grpHex = {'พนักงานบริการ':'#22C55E','พนักงานครัว':'#EF4444','ทีมผู้จัดการสาขา':'#3B82F6'};
+  const byPos = {};
+  trains.forEach(t => {
+    (t.traineeIds||[]).forEach(tid => {
+      const e = getEmployee(tid); if (!e) return;
+      const g = getPositionGroup(e.position), p = e.position;
+      if (!byPos[p]) byPos[p] = {group:g,trained:0,evaled:0,passed:0};
+      byPos[p].trained++;
+      if (t.eval) { byPos[p].evaled++; if (isEvalPass(t.eval.result)) byPos[p].passed++; }
+    });
+  });
+  const entries = Object.entries(byPos).sort((a,b) => b[1].trained - a[1].trained);
+  const PAGE = 5;
+  const totalPages = Math.max(1, Math.ceil(entries.length / PAGE));
+  _dashPosPage = Math.min(_dashPosPage, totalPages - 1);
+  if (!entries.length) {
+    el.innerHTML = '<p class="text-muted" style="text-align:center;padding:24px 0">ยังไม่มีข้อมูลการสอน</p>';
+    return;
+  }
+  const slice = entries.slice(_dashPosPage * PAGE, _dashPosPage * PAGE + PAGE);
+  const items = slice.map(([pos, d]) => {
+    const col = grpHex[d.group] || '#9CA3AF';
+    const pr = d.evaled ? Math.round(d.passed / d.evaled * 100) : null;
+    const barCol = pr === null ? '#9CA3AF' : pr >= 80 ? '#22C55E' : pr >= 50 ? '#F59E0B' : '#EF4444';
+    const psPct = Math.round(d.passed / Math.max(d.trained, 1) * 100);
+    const flPct = Math.round((d.evaled - d.passed) / Math.max(d.trained, 1) * 100);
+    const nePct = 100 - psPct - flPct;
+    const safePos = pos.replace(/'/g, "\\'");
+    return '<div style="padding:10px 12px;border-radius:10px;background:' + col + '08;border:1px solid ' + col + '20;cursor:pointer" onclick="showPositionTrainingModal(\'' + bid + '\',\'' + safePos + '\')">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
+      + '<div style="display:flex;align-items:center;gap:7px">'
+      + '<div style="width:8px;height:8px;border-radius:50%;background:' + col + '"></div>'
+      + '<span style="font-size:12px;font-weight:700;color:var(--text)">' + pos + '</span>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:8px">'
+      + '<span style="font-size:10px;color:var(--text3)">' + d.trained + ' ครั้ง</span>'
+      + '<span style="font-size:13px;font-weight:800;color:' + barCol + '">' + (pr !== null ? pr + '%' : '—') + '</span>'
+      + '<span style="font-size:10px;color:' + col + ';font-weight:600">ดูการสอน ›</span>'
+      + '</div></div>'
+      + '<div style="height:6px;border-radius:3px;overflow:hidden;display:flex;background:#E5E7EB">'
+      + '<div style="height:100%;width:' + psPct + '%;background:#22C55E"></div>'
+      + '<div style="height:100%;width:' + flPct + '%;background:#EF4444"></div>'
+      + '<div style="height:100%;width:' + nePct + '%;background:#D1D5DB"></div>'
+      + '</div></div>';
+  }).join('');
+  const pager = totalPages > 1 ? '<div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">'
+    + '<button class="btn btn-sm btn-outline" onclick="_dashPosPage--;renderDashPosPage(\'' + bid + '\')" ' + (_dashPosPage === 0 ? 'disabled' : '') + ' style="padding:3px 10px">‹</button>'
+    + '<span style="font-size:11px;color:var(--text3)">' + (_dashPosPage + 1) + '/' + totalPages + '</span>'
+    + '<button class="btn btn-sm btn-outline" onclick="_dashPosPage++;renderDashPosPage(\'' + bid + '\')" ' + (_dashPosPage >= totalPages - 1 ? 'disabled' : '') + ' style="padding:3px 10px">›</button>'
+    + '</div>' : '';
+  el.innerHTML = items + pager;
+}
+
+function showAllEmployeesModal(bid) {
+  const emps = getBranchEmployees(bid);
+  showModal('พนักงานทั้งหมด (' + emps.length + ' คน)', '<div class="table-wrap"><table>'
+    + '<thead><tr><th>รหัส</th><th>ชื่อ</th><th>ตำแหน่ง</th><th>อายุงาน</th><th>สถานะ</th></tr></thead>'
+    + '<tbody>' + emps.map(e => '<tr>'
+      + '<td style="font-family:monospace;font-size:12px;color:var(--text2)">' + (e.empCode || '—') + '</td>'
+      + '<td style="font-weight:600">' + e.name + '</td>'
+      + '<td style="font-size:12px;color:var(--text2)">' + e.position + '</td>'
+      + '<td><span style="font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-light);padding:2px 8px;border-radius:4px">' + calcTenureShort(e.startDate) + '</span></td>'
+      + '<td><span class="badge ' + (e.status === 'active' ? 'badge-green' : 'badge-red') + '">' + (e.status === 'active' ? 'ทำงาน' : 'ลาออก') + '</span></td>'
+      + '</tr>').join('')
+    + '</tbody></table></div>', null, 'ปิด');
+}
+
+function showPendingModal(bid) {
+  const pending = getBranchTrainings(bid).filter(t => !t.eval && !isEvalDeadlinePassed(t.date));
+  if (!pending.length) {
+    showModal('รอประเมินผล', '<p class="text-muted" style="text-align:center;padding:24px 0">ไม่มีรายการรอประเมิน ✓</p>', null, 'ปิด');
+    return;
+  }
+  showModal('รอประเมินผล (' + pending.length + ' รายการ)', '<div style="display:flex;flex-direction:column;gap:8px">'
+    + pending.sort((a, b) => a.date < b.date ? -1 : 1).map(t => {
+      const mod = MODULES[t.moduleId];
+      return '<div style="display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:8px">'
+        + '<div style="width:8px;height:8px;border-radius:50%;background:#F59E0B;flex-shrink:0"></div>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:12px;font-weight:700;color:var(--primary)">' + (mod ? mod.name : t.moduleId) + '</div>'
+        + '<div style="font-size:11px;color:var(--text3)">' + fmtDate(t.date) + ' · ' + (t.traineeIds || []).length + ' คน · ผู้สอน: ' + t.trainerName + '</div>'
+        + '</div><span class="badge badge-yellow" style="flex-shrink:0">รอประเมิน</span></div>';
+    }).join('') + '</div>', null, 'ปิด');
+}
+
+function showPassRateModal(bid) {
+  const evaled = getBranchTrainings(bid).filter(t => t.eval);
+  const passed = evaled.filter(t => isEvalPass(t.eval.result));
+  const failed = evaled.filter(t => !isEvalPass(t.eval.result));
+  const rate = evaled.length ? Math.round(passed.length / evaled.length * 100) : 0;
+  showModal('อัตราผ่านประเมิน',
+    '<div style="display:flex;gap:12px;margin-bottom:16px">'
+    + '<div style="flex:1;text-align:center;padding:14px;background:#F0FDF4;border-radius:10px"><div style="font-size:28px;font-weight:800;color:#22C55E">' + passed.length + '</div><div style="font-size:11px;color:var(--text3)">ผ่าน</div></div>'
+    + '<div style="flex:1;text-align:center;padding:14px;background:#FEF2F2;border-radius:10px"><div style="font-size:28px;font-weight:800;color:#EF4444">' + failed.length + '</div><div style="font-size:11px;color:var(--text3)">ไม่ผ่าน</div></div>'
+    + '<div style="flex:1;text-align:center;padding:14px;background:#F5F3FF;border-radius:10px"><div style="font-size:28px;font-weight:800;color:#8B5CF6">' + rate + '%</div><div style="font-size:11px;color:var(--text3)">pass rate</div></div>'
+    + '</div>'
+    + (evaled.length ? '<div class="table-wrap"><table><thead><tr><th>Module</th><th>วันที่</th><th>ผล</th></tr></thead><tbody>'
+      + evaled.sort((a, b) => b.date < a.date ? -1 : 1).map(t => '<tr>'
+        + '<td style="font-weight:600;color:var(--primary)">' + (MODULES[t.moduleId] ? MODULES[t.moduleId].name : t.moduleId) + '</td>'
+        + '<td style="font-size:12px">' + fmtDate(t.date) + '</td>'
+        + '<td><span class="badge ' + getEvalResultBadge(t.eval.result) + '">' + getEvalResultLabel(t.eval.result) + '</span></td>'
+        + '</tr>').join('')
+      + '</tbody></table></div>' : ''), null, 'ปิด');
 }
 
 function showEmpGroupModal(bid, group) {
@@ -3150,7 +3234,8 @@ function renderDashMonthChart(bid) {
   const dotsSvg=days.map((d,i)=>{
     const cx=xP(i).toFixed(1),cy=yP(d.n).toFixed(1);
     if(d.n===0) return `<circle cx='${cx}' cy='${yP(0).toFixed(1)}' r='2' fill='#CBD5E1'/>`;
-    return `<circle cx='${cx}' cy='${cy}' r='9' fill='#3B82F6' stroke='white' stroke-width='2.5' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/><circle cx='${cx}' cy='${cy}' r='4' fill='white' pointer-events='none'/><text x='${cx}' y='${(parseFloat(cy)-15).toFixed(1)}' text-anchor='middle' font-size='13' font-weight='800' fill='#1D4ED8'>${d.n}</text><circle cx='${cx}' cy='${cy}' r='18' fill='transparent' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/>`;
+    const lbY=parseFloat(cy)-15<pT+4?(parseFloat(cy)+24).toFixed(1):(parseFloat(cy)-15).toFixed(1);
+    return `<circle cx='${cx}' cy='${cy}' r='9' fill='#3B82F6' stroke='white' stroke-width='2.5' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/><circle cx='${cx}' cy='${cy}' r='4' fill='white' pointer-events='none'/><text x='${cx}' y='${lbY}' text-anchor='middle' font-size='13' font-weight='800' fill='#1D4ED8'>${d.n}</text><circle cx='${cx}' cy='${cy}' r='18' fill='transparent' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/>`;
   }).join('');
   const el=document.getElementById('dash-line-chart');
   if(!el) return;
