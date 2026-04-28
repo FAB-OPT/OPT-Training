@@ -2936,17 +2936,21 @@ function renderDashboard() {
               };
               const counts=bk.map(([,mn,mx])=>activeEmps.filter(e=>{const m=gm(e);return m>=mn&&m<mx;}).length);
               const maxC=Math.max(...counts,1);
-              const maxH=80;
-              return `<div style="display:flex;align-items:flex-end;gap:8px;height:${maxH+52}px">
+              return `<div style="display:flex;flex-direction:column;gap:9px">
                 ${bk.map(([lbl,mn,mx,col],i)=>{
-                  const h=Math.max(Math.round(counts[i]/maxC*maxH),6);
                   const pct=totalActive?Math.round(counts[i]/totalActive*100):0;
-                  return `<div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;flex:1" onclick="showEmpTenureModal('${bid}','${lbl}',${mn},${mx})">
-                    <div style="font-size:13px;font-weight:800;color:${col};margin-bottom:2px">${pct}%</div>
-                    <div style="font-size:10px;font-weight:600;color:${col};margin-bottom:3px">${counts[i]} คน</div>
-                    <div style="width:100%;max-width:44px;background:${col};border-radius:5px 5px 0 0;height:${h}px"></div>
-                    <div style="width:100%;height:2px;background:${col};opacity:.3"></div>
-                    <div style="font-size:8.5px;text-align:center;color:var(--text3);margin-top:4px;line-height:1.3">${lbl}</div>
+                  const barW=Math.round(counts[i]/maxC*100);
+                  return `<div style="cursor:pointer" onclick="showEmpTenureModal('${bid}','${lbl}',${mn},${mx})">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+                      <span style="font-size:11px;font-weight:600;color:var(--text)">${lbl}</span>
+                      <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;margin-left:8px">
+                        <span style="font-size:12px;font-weight:800;color:${col}">${counts[i]} คน</span>
+                        <span style="font-size:10px;color:${col};opacity:.7">${pct}%</span>
+                      </div>
+                    </div>
+                    <div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden">
+                      <div style="height:100%;width:${barW}%;background:${col};border-radius:4px;transition:width .4s"></div>
+                    </div>
                   </div>`;
                 }).join('')}
               </div>`;
@@ -3232,8 +3236,8 @@ function renderDashMonthChart(bid) {
   const dotsSvg=days.map((d,i)=>{
     const cx=xP(i).toFixed(1),cy=yP(d.n).toFixed(1);
     if(d.n===0) return `<circle cx='${cx}' cy='${yP(0).toFixed(1)}' r='2' fill='#CBD5E1'/>`;
-    const lbY=parseFloat(cy)-15<pT+4?(parseFloat(cy)+24).toFixed(1):(parseFloat(cy)-15).toFixed(1);
-    return `<circle cx='${cx}' cy='${cy}' r='9' fill='#3B82F6' stroke='white' stroke-width='2.5' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/><circle cx='${cx}' cy='${cy}' r='4' fill='white' pointer-events='none'/><text x='${cx}' y='${lbY}' text-anchor='middle' font-size='13' font-weight='800' fill='#1D4ED8'>${d.n}</text><circle cx='${cx}' cy='${cy}' r='18' fill='transparent' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/>`;
+    const lbY=parseFloat(cy)-17<pT+4?(parseFloat(cy)+26).toFixed(1):(parseFloat(cy)-17).toFixed(1);
+    return `<circle cx='${cx}' cy='${cy}' r='9' fill='#3B82F6' stroke='white' stroke-width='2.5' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/><circle cx='${cx}' cy='${cy}' r='4' fill='white' pointer-events='none'/><text x='${cx}' y='${lbY}' text-anchor='middle' font-size='13' font-weight='800' fill='#1D4ED8' stroke='white' stroke-width='3' paint-order='stroke'>${d.n}</text><circle cx='${cx}' cy='${cy}' r='18' fill='transparent' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/>`;
   }).join('');
   const el=document.getElementById('dash-line-chart');
   if(!el) return;
