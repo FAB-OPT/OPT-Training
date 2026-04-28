@@ -3135,22 +3135,22 @@ function renderDashMonthChart(bid) {
   });
   const days=Array.from({length:dim},(_,i)=>{const d=String(i+1).padStart(2,'0');const k=ym+'-'+d;return {d:i+1,k,n:(byDay[k]||{n:0}).n};});
   const maxV=Math.max(...days.map(d=>d.n),1);
-  const W=520,H=140,pL=26,pR=10,pT=14,pB=26;
+  const W=540,H=200,pL=34,pR=12,pT=22,pB=34;
   const cW=W-pL-pR,cH=H-pT-pB;
   const xP=i=>pL+i/(dim-1)*cW;
   const yP=v=>pT+cH-(v/maxV)*cH;
   const pts=days.map((d,i)=>xP(i).toFixed(1)+','+yP(d.n).toFixed(1)).join(' L');
   const area='M'+pL+','+(pT+cH)+' L'+pts+' L'+(pL+cW).toFixed(1)+','+(pT+cH)+' Z';
   const yTicks=[0,maxV===1?1:Math.round(maxV/2),maxV];
-  const gridSvg=yTicks.map(v=>`<line x1='${pL}' y1='${yP(v).toFixed(1)}' x2='${(pL+cW).toFixed(1)}' y2='${yP(v).toFixed(1)}' stroke='#E2E8F0' stroke-width='1'/>`).join('');
-  const yLblSvg=yTicks.map(v=>`<text x='${pL-4}' y='${(yP(v)+4).toFixed(1)}' text-anchor='end' font-size='9' fill='#94A3B8'>${v}</text>`).join('');
+  const gridSvg=yTicks.map(v=>`<line x1='${pL}' y1='${yP(v).toFixed(1)}' x2='${(pL+cW).toFixed(1)}' y2='${yP(v).toFixed(1)}' stroke='#E2E8F0' stroke-width='1' stroke-dasharray='${v===0?'none':'4,3'}'/>`).join('');
+  const yLblSvg=yTicks.map(v=>`<text x='${pL-6}' y='${(yP(v)+5).toFixed(1)}' text-anchor='end' font-size='12' font-weight='600' fill='#64748B'>${v}</text>`).join('');
   const showDays=dim<=20?days:days.filter(d=>d.d===1||d.d%5===0||d.d===dim);
-  const xLblSvg=showDays.map(d=>`<text x='${xP(d.d-1).toFixed(1)}' y='${H-7}' text-anchor='middle' font-size='9' fill='#94A3B8'>${d.d}</text>`).join('');
+  const xLblSvg=showDays.map(d=>`<text x='${xP(d.d-1).toFixed(1)}' y='${H-8}' text-anchor='middle' font-size='11' fill='#64748B'>${d.d}</text>`).join('');
   const totalThisMonth=days.reduce((s,d)=>s+d.n,0);
   const dotsSvg=days.map((d,i)=>{
     const cx=xP(i).toFixed(1),cy=yP(d.n).toFixed(1);
-    if(d.n===0) return `<circle cx='${cx}' cy='${yP(0).toFixed(1)}' r='2.5' fill='#E2E8F0'/>`;
-    return `<circle cx='${cx}' cy='${cy}' r='5.5' fill='#3B82F6' stroke='white' stroke-width='2' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')" title='${d.d}: ${d.n} ครั้ง'/><circle cx='${cx}' cy='${cy}' r='3' fill='white' pointer-events='none'/><text x='${cx}' y='${(parseFloat(cy)-10).toFixed(1)}' text-anchor='middle' font-size='9.5' font-weight='700' fill='#3B82F6'>${d.n}</text><circle cx='${cx}' cy='${cy}' r='14' fill='transparent' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/>`;
+    if(d.n===0) return `<circle cx='${cx}' cy='${yP(0).toFixed(1)}' r='2' fill='#CBD5E1'/>`;
+    return `<circle cx='${cx}' cy='${cy}' r='9' fill='#3B82F6' stroke='white' stroke-width='2.5' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/><circle cx='${cx}' cy='${cy}' r='4' fill='white' pointer-events='none'/><text x='${cx}' y='${(parseFloat(cy)-15).toFixed(1)}' text-anchor='middle' font-size='13' font-weight='800' fill='#1D4ED8'>${d.n}</text><circle cx='${cx}' cy='${cy}' r='18' fill='transparent' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/>`;
   }).join('');
   const el=document.getElementById('dash-line-chart');
   if(!el) return;
@@ -3161,18 +3161,24 @@ function renderDashMonthChart(bid) {
   const nb=document.getElementById('dash-month-next');
   if(nb) nb.disabled=isCurrentMonth;
   el.innerHTML=`
-    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${monthLabel} · รวม <strong style="color:var(--text)">${totalThisMonth} ครั้ง</strong></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:700;color:var(--text)">${monthLabel} · <span style="color:#3B82F6">${totalThisMonth} ครั้ง</span></div>
+      <div style="font-size:11px;color:#94A3B8;display:flex;align-items:center;gap:5px">
+        <svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="#3B82F6" stroke="white" stroke-width="1.5"/><circle cx="6" cy="6" r="2.5" fill="white"/></svg>
+        กดจุดเพื่อดูรายละเอียด
+      </div>
+    </div>
     <div style="overflow-x:auto">
       <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;display:block">
         <defs><linearGradient id="areaGrad_${bid}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.18"/>
-          <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.01"/>
+          <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.02"/>
         </linearGradient></defs>
         ${gridSvg}
         ${yLblSvg}
         ${xLblSvg}
         <path d="${area}" fill="url(#areaGrad_${bid})"/>
-        <path d="M${pts}" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="M${pts}" fill="none" stroke="#3B82F6" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
         ${dotsSvg}
       </svg>
     </div>`;
