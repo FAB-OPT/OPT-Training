@@ -2954,14 +2954,12 @@ function renderDashboard() {
           </div>
         </div>
       </div>
-      <div class="card" style="margin:0">
       <div class="card" style="margin:0;display:flex;flex-direction:column">
         <div class="card-header" style="flex-shrink:0"><span class="card-title">การสอนแยกตามตำแหน่ง</span><span style="font-size:11px;color:var(--text3)">กดดูว่าสอนอะไรไปบ้าง</span></div>
         <div id='dash-pos-list' style='flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:8px'></div>
+      </div>
     </div>
-
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;align-items:stretch">
     <div class="card" style="margin:0">
       <div class="card-header">
         <span class="card-title">สรุปการสอนรายเดือน</span>
@@ -2991,7 +2989,7 @@ function renderDashboard() {
           </div>
         </div>`;
       }).join('')}
-    </div></div></div>`;
+    </div></div>`;
   })()}`;
 
 }
