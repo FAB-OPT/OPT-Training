@@ -2698,6 +2698,7 @@ function showPage(page) {
     'admin-reports': renderAdminReports,
   };
   if (pages[page]) document.getElementById('main-content').innerHTML = pages[page]();
+  if (page === 'dashboard') { _dashMonth = null; renderDashMonthChart(getBranchId()); }
   updateBottomNav(page);
 }
 
@@ -2987,47 +2988,17 @@ function renderDashboard() {
       </div>
     </div>
 
+
     <div class="card" style="margin-bottom:16px">
-      <div class="card-header"><span class="card-title">สรุปการสอนรายเดือน</span></div>
-      ${(()=>{
-        if(!trains.length) return '<p class="text-muted" style="text-align:center;padding:24px 0">ยังไม่มีข้อมูล</p>';
-        const byMonth={};
-        trains.forEach(t=>{
-          const ym=t.date?t.date.slice(0,7):'unknown';
-          if(!byMonth[ym]) byMonth[ym]={total:0,evaled:0,passed:0};
-          byMonth[ym].total++;
-          if(t.eval){byMonth[ym].evaled++;if(isEvalPass(t.eval.result))byMonth[ym].passed++;}
-        });
-        const months=Object.keys(byMonth).filter(m=>m!=='unknown').sort().slice(-6);
-        if(!months.length) return '<p class="text-muted" style="text-align:center;padding:24px 0">ยังไม่มีข้อมูล</p>';
-        const maxTotal=Math.max(...months.map(m=>byMonth[m].total),1);
-        const thNames=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-        const rows=months.map(ym=>{
-          const d=byMonth[ym];
-          const [y,m]=ym.split('-');
-          const lbl=thNames[parseInt(m)-1]+' '+(parseInt(y)+543-2500).toString().slice(-2);
-          const pr=d.evaled?Math.round(d.passed/d.evaled*100):null;
-          const barCol=pr===null?'#6366F1':pr>=80?'#22C55E':pr>=50?'#F59E0B':'#EF4444';
-          const barW=Math.round(d.total/maxTotal*100);
-          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div style="width:54px;flex-shrink:0;font-size:11px;font-weight:700;color:var(--text2)">${lbl}</div>
-            <div style="flex:1;height:20px;border-radius:6px;overflow:hidden;background:#F1F5F9">
-              <div style="height:100%;width:${barW}%;background:${barCol};border-radius:6px;display:flex;align-items:center;padding-left:7px;transition:width .4s">
-                ${barW>18?`<span style="font-size:10px;font-weight:700;color:white">${d.total} ครั้ง</span>`:''}
-              </div>
-            </div>
-            ${barW<=18?`<span style="font-size:10px;font-weight:700;color:var(--text2)">${d.total} ครั้ง</span>`:''}
-            <div style="width:44px;text-align:right;font-size:12px;font-weight:800;color:${barCol};flex-shrink:0">${pr!==null?pr+'%':'—'}</div>
-          </div>`;
-        }).join('');
-        return `<div>${rows}</div>
-        <div style="display:flex;gap:12px;justify-content:center;font-size:10px;color:var(--text3);padding-top:10px;margin-top:2px">
-          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#22C55E;display:inline-block"></span>≥80%</span>
-          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#F59E0B;display:inline-block"></span>50–79%</span>
-          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#EF4444;display:inline-block"></span>&lt;50%</span>
-          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:6px;border-radius:2px;background:#6366F1;display:inline-block"></span>ยังไม่ประเมิน</span>
-        </div>`;
-      })()}
+      <div class="card-header">
+        <span class="card-title">สรุปการสอนรายเดือน</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn btn-sm btn-outline" id="dash-month-prev" onclick="dashMonthNav(-1)" style="padding:3px 8px;font-size:12px">‹</button>
+          <span id="dash-month-label" style="font-size:12px;font-weight:700;color:var(--text2);min-width:60px;text-align:center"></span>
+          <button class="btn btn-sm btn-outline" id="dash-month-next" onclick="dashMonthNav(1)" style="padding:3px 8px;font-size:12px">›</button>
+        </div>
+      </div>
+      <div id="dash-line-chart"></div>
     </div>
 
     <div class="card">
@@ -3048,7 +3019,7 @@ function renderDashboard() {
         </div>`;
       }).join('')}
     </div></div>`;
-  })()}`;
+  })()}\`;
 }
 
 function showEmpGroupModal(bid, group) {
@@ -3111,6 +3082,99 @@ function showPositionTrainingModal(bid, pos) {
         </div>`;
       }).join('')}
     </div>`, null, 'ปิด');
+}
+
+function showDayTrainingModal(bid, date) {
+  const [y,m,d] = date.split('-');
+  const lbl = d+' '+TH_MONTH_NAMES[parseInt(m)-1]+' '+(parseInt(y)+543);
+  const ts = getBranchTrainings(bid).filter(t=>t.date&&t.date.slice(0,10)===date);
+  if(!ts.length){showModal(lbl,'<p class="text-muted" style="text-align:center;padding:24px 0">ไม่มีบันทึกการสอนวันนี้</p>',null,'ปิด');return;}
+  showModal(lbl+' — '+ts.length+' ครั้ง', `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${ts.map(t=>{
+        const mod=MODULES[t.moduleId];
+        const badge=t.eval?`<span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span>`:isEvalDeadlinePassed(t.date)?'<span class="badge badge-gray">หมดเวลา</span>':'<span class="badge badge-yellow">รอประเมิน</span>';
+        return `<div style="border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:13px;font-weight:700;color:var(--primary)">${mod?.name||t.moduleId}</span>
+            ${badge}
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px">ผู้สอน: ${t.trainerName}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">
+            ${(t.subtopics||[]).map(s=>`<span style="font-size:11px;background:var(--surface2);padding:2px 8px;border-radius:10px">${s}</span>`).join('')}
+          </div>
+          <div style="font-size:11px;color:var(--text3)">พนักงาน: ${(t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?e.name:'?';}).join(', ')}</div>
+        </div>`;
+      }).join('')}
+    </div>`, null, 'ปิด');
+}
+
+const TH_MONTH_NAMES = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+let _dashMonth = null;
+function dashMonthNav(delta) {
+  if(!_dashMonth) renderDashMonthChart(getBranchId());
+  _dashMonth.m += delta;
+  if(_dashMonth.m > 12){_dashMonth.m=1;_dashMonth.y++;}
+  if(_dashMonth.m < 1){_dashMonth.m=12;_dashMonth.y--;}
+  renderDashMonthChart(getBranchId());
+}
+
+function renderDashMonthChart(bid) {
+  if(!_dashMonth){const n=new Date(new Date().getTime()+7*3600*1000);_dashMonth={y:n.getFullYear(),m:n.getMonth()+1};}
+  const {y,m} = _dashMonth;
+  const ym = y+'-'+String(m).padStart(2,'0');
+  const monthLabel = TH_MONTH_NAMES[m-1]+' '+(y+543);
+  const dim = new Date(y,m,0).getDate();
+  const trains = getBranchTrainings(bid);
+  const byDay = {};
+  trains.filter(t=>t.date&&t.date.startsWith(ym)).forEach(t=>{
+    const dk=t.date.slice(0,10);
+    if(!byDay[dk]) byDay[dk]={n:0};
+    byDay[dk].n++;
+  });
+  const days=Array.from({length:dim},(_,i)=>{const d=String(i+1).padStart(2,'0');const k=ym+'-'+d;return {d:i+1,k,n:(byDay[k]||{n:0}).n};});
+  const maxV=Math.max(...days.map(d=>d.n),1);
+  const W=520,H=140,pL=26,pR=10,pT=14,pB=26;
+  const cW=W-pL-pR,cH=H-pT-pB;
+  const xP=i=>pL+i/(dim-1)*cW;
+  const yP=v=>pT+cH-(v/maxV)*cH;
+  const pts=days.map((d,i)=>xP(i).toFixed(1)+','+yP(d.n).toFixed(1)).join(' L');
+  const area='M'+pL+','+(pT+cH)+' L'+pts+' L'+(pL+cW).toFixed(1)+','+(pT+cH)+' Z';
+  const yTicks=[0,maxV===1?1:Math.round(maxV/2),maxV];
+  const gridSvg=yTicks.map(v=>`<line x1='${pL}' y1='${yP(v).toFixed(1)}' x2='${(pL+cW).toFixed(1)}' y2='${yP(v).toFixed(1)}' stroke='#E2E8F0' stroke-width='1'/>`).join('');
+  const yLblSvg=yTicks.map(v=>`<text x='${pL-4}' y='${(yP(v)+4).toFixed(1)}' text-anchor='end' font-size='9' fill='#94A3B8'>${v}</text>`).join('');
+  const showDays=dim<=20?days:days.filter(d=>d.d===1||d.d%5===0||d.d===dim);
+  const xLblSvg=showDays.map(d=>`<text x='${xP(d.d-1).toFixed(1)}' y='${H-7}' text-anchor='middle' font-size='9' fill='#94A3B8'>${d.d}</text>`).join('');
+  const totalThisMonth=days.reduce((s,d)=>s+d.n,0);
+  const dotsSvg=days.map((d,i)=>{
+    const cx=xP(i).toFixed(1),cy=yP(d.n).toFixed(1);
+    if(d.n===0) return `<circle cx='${cx}' cy='${yP(0).toFixed(1)}' r='2.5' fill='#E2E8F0'/>`;
+    return `<circle cx='${cx}' cy='${cy}' r='5.5' fill='#3B82F6' stroke='white' stroke-width='2' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')" title='${d.d}: ${d.n} ครั้ง'/><circle cx='${cx}' cy='${cy}' r='3' fill='white' pointer-events='none'/><text x='${cx}' y='${(parseFloat(cy)-10).toFixed(1)}' text-anchor='middle' font-size='9.5' font-weight='700' fill='#3B82F6'>${d.n}</text><circle cx='${cx}' cy='${cy}' r='14' fill='transparent' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/>`;
+  }).join('');
+  const el=document.getElementById('dash-line-chart');
+  if(!el) return;
+  const nl=document.getElementById('dash-month-label');
+  if(nl) nl.textContent=TH_MONTH_NAMES[m-1]+' '+(y+543);
+  const now=new Date(new Date().getTime()+7*3600*1000);
+  const isCurrentMonth=(y===now.getFullYear()&&m===now.getMonth()+1);
+  const nb=document.getElementById('dash-month-next');
+  if(nb) nb.disabled=isCurrentMonth;
+  el.innerHTML=`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${monthLabel} · รวม <strong style="color:var(--text)">${totalThisMonth} ครั้ง</strong></div>
+    <div style="overflow-x:auto">
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;display:block">
+        <defs><linearGradient id="areaGrad_${bid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.01"/>
+        </linearGradient></defs>
+        ${gridSvg}
+        ${yLblSvg}
+        ${xLblSvg}
+        <path d="${area}" fill="url(#areaGrad_${bid})"/>
+        <path d="M${pts}" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dotsSvg}
+      </svg>
+    </div>`;
 }
 
 function showEmpTenureModal(bid, label, minMo, maxMo) {
