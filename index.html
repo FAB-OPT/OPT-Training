@@ -2982,13 +2982,13 @@ function renderDashboard() {
         const dotCol=isSv?grpHex['พนักงานบริการ']:grpHex['พนักงานครัว'];
         const icon=isSv?'🍽':'🍳';
         const badge=t.eval?`<span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span>`:isEvalDeadlinePassed(t.date)?'<span class="badge badge-gray">หมดเวลา</span>':'<span class="badge badge-yellow">รอประเมิน</span>';
-        return `<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-          <div style="width:36px;height:36px;border-radius:50%;background:${dotCol}15;border:2px solid ${dotCol}30;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px">${icon}</div>
+        return `<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="width:32px;height:32px;border-radius:8px;background:${dotCol}15;border:1.5px solid ${dotCol}40;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;margin-top:2px">${icon}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mod?.name||'—'}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">${fmtDateTime(t.date)} · ${(t.traineeIds||[]).length} คน</div>
+            <div style="font-size:13px;font-weight:700;color:var(--primary);line-height:1.3">${mod?.name||'—'}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">${fmtDate(t.date)} · ${(t.traineeIds||[]).length} คน · ${t.trainerName||''}</div>
+            <div style="margin-top:5px">${badge}</div>
           </div>
-          <div style="align-self:center;flex-shrink:0">${badge}</div>
         </div>`;
       }).join('')}
     </div></div></div>`;
@@ -3219,7 +3219,7 @@ function renderDashMonthChart(bid) {
   });
   const days=Array.from({length:dim},(_,i)=>{const d=String(i+1).padStart(2,'0');const k=ym+'-'+d;return {d:i+1,k,n:(byDay[k]||{n:0}).n};});
   const maxV=Math.max(...days.map(d=>d.n),1);
-  const W=540,H=200,pL=34,pR=12,pT=22,pB=34;
+  const W=540,H=240,pL=34,pR=12,pT=22,pB=34;
   const cW=W-pL-pR,cH=H-pT-pB;
   const xP=i=>pL+i/(dim-1)*cW;
   const yP=v=>pT+cH-(v/maxV)*cH;
