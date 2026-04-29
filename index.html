@@ -405,6 +405,7 @@
 
   /* TOP BAR */
   .topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 12px 28px; margin: -24px -28px 24px; display: flex; align-items: center; justify-content: space-between; }
+  body.branch-user .topbar { display: none !important; }
   .topbar-title { font-size: 13px; font-weight: 600; color: var(--text2); }
   .topbar-user { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); }
   .topbar-right-text { font-size: 13px; color: var(--text2); font-weight: 500; }
@@ -2708,6 +2709,9 @@ function showPage(page) {
     'admin-reports': renderAdminReports,
   };
   if (pages[page]) document.getElementById('main-content').innerHTML = pages[page]();
+  if (currentUser && currentUser.type === 'branch') {
+    document.querySelectorAll('#main-content .topbar').forEach(el => el.remove());
+  }
   if (page === 'dashboard') { _dashMonth = null; renderDashMonthChart(getBranchId()); renderDashPosPage(getBranchId()); }
   updateBottomNav(page);
 }
@@ -2817,7 +2821,6 @@ function renderDashboard() {
   const pending = trains.filter(t=>!t.eval && !isEvalDeadlinePassed(t.date));
   const passRate = evaled.length ? Math.round(evaled.filter(t=>isEvalPass(t.eval.result)).length/evaled.length*100) : 0;
   return `
-  <div class="topbar"><div class="topbar-title">สาขา ${bid} — ${b.name.replace(bid+' ','')}</div><div class="topbar-right-text">ผู้จัดการเขต: ${b.manager}</div></div>
   <div class="page-header"><div class="page-header-left"><div class="page-title">แดชบอร์ด</div><div class="page-sub">ภาพรวมการสอนงานของสาขา · อัปเดต ${fmtDate(new Date().toISOString())}</div></div></div>
   ${(()=>{
     const activeEmps = emps.filter(e=>e.status==='active');
@@ -3310,7 +3313,7 @@ function showEmpTenureModal(bid, label, minMo, maxMo) {
 function renderEmployees() {
   const bid = getBranchId(); const emps = getBranchEmployees(bid);
   return `
-  <div class="topbar"><div class="topbar-title">สาขา ${bid} — ${BRANCH_MASTER[bid].name.replace(bid+' ','')}</div><div class="topbar-right-text">ผู้จัดการเขต: ${BRANCH_MASTER[bid].manager}</div></div>
+
   <div class="page-header"><div class="page-header-left"><div class="page-title">รายชื่อพนักงาน</div><div class="page-sub">${BRANCH_MASTER[bid].name}</div></div>
   <button class="btn btn-navy" onclick="openAddEmployee()">+ เพิ่มพนักงาน</button></div>
   <div class="card">
@@ -3411,7 +3414,7 @@ function openEditEmployee(id) {
 function renderTrainings() {
   const bid = getBranchId(); const trains = getBranchTrainings(bid);
   return `
-  <div class="topbar"><div class="topbar-title">สาขา ${bid} — ${BRANCH_MASTER[bid].name.replace(bid+' ','')}</div><div class="topbar-right-text">ผู้จัดการเขต: ${BRANCH_MASTER[bid].manager}</div></div>
+
   <div class="page-header">
     <div><div class="page-title">บันทึกการสอนงาน</div><div class="page-sub">ประวัติการสอนงานทั้งหมดของสาขา</div></div>
     <button class="btn btn-navy" onclick="openAddTraining()">+ บันทึกการสอนงาน</button>
@@ -3833,7 +3836,7 @@ function renderEvaluations() {
   const done = trains.filter(t=>t.eval);
   const expired = trains.filter(t=>!t.eval && isEvalDeadlinePassed(t.date));
   return `
-  <div class="topbar"><div class="topbar-title">สาขา ${bid} — ${BRANCH_MASTER[bid].name.replace(bid+' ','')}</div><div class="topbar-right-text">ผู้จัดการเขต: ${BRANCH_MASTER[bid].manager}</div></div>
+
   <div class="page-header"><div><div class="page-title">การประเมินผล</div><div class="page-sub">บันทึกและติดตามผลการประเมินการสอนงาน</div></div></div>
   <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="stat-card"><div class="stat-icon-wrap stat-icon-yellow">⏳</div><div class="stat-info"><div class="stat-value stat-value-yellow">${pending.length}</div><div class="stat-label">รอการประเมิน</div></div></div>
@@ -3974,7 +3977,7 @@ function openQuiz(trainingId) {
 function renderReports() {
   const bid = getBranchId();
   return `
-  <div class="topbar"><div class="topbar-title">สาขา ${bid} — ${BRANCH_MASTER[bid].name.replace(bid+' ','')}</div><div class="topbar-right-text">ผู้จัดการเขต: ${BRANCH_MASTER[bid].manager}</div></div>
+
   <div class="page-header"><div><div class="page-title">ออกรายงาน</div><div class="page-sub">Export รายงานในรูปแบบต่างๆ</div></div></div>
   <div class="grid-2">
     ${[['สรุปสาขา','สรุปภาพรวมการสอนงานและประเมินผลของสาขา','summary'],
