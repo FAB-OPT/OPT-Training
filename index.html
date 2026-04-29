@@ -3238,7 +3238,7 @@ function renderDashMonthChart(bid) {
   });
   const days=Array.from({length:dim},(_,i)=>{const d=String(i+1).padStart(2,'0');const k=ym+'-'+d;return {d:i+1,k,n:(byDay[k]||{n:0}).n};});
   const maxV=Math.max(...days.map(d=>d.n),1);
-  const W=540,H=240,pL=34,pR=12,pT=22,pB=34;
+  const W=540,H=260,pL=34,pR=12,pT=42,pB=34;
   const cW=W-pL-pR,cH=H-pT-pB;
   const xP=i=>pL+i/(dim-1)*cW;
   const yP=v=>pT+cH-(v/maxV)*cH;
@@ -3253,7 +3253,7 @@ function renderDashMonthChart(bid) {
   const dotsSvg=days.map((d,i)=>{
     const cx=xP(i).toFixed(1),cy=yP(d.n).toFixed(1);
     if(d.n===0) return `<circle cx='${cx}' cy='${yP(0).toFixed(1)}' r='2' fill='#CBD5E1'/>`;
-    const lbY=Math.max(pT+12,parseFloat(cy)-17).toFixed(1);
+    const lbY=(parseFloat(cy)-17).toFixed(1);
     return `<circle cx='${cx}' cy='${cy}' r='9' fill='#3B82F6' stroke='white' stroke-width='2.5' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/><circle cx='${cx}' cy='${cy}' r='4' fill='white' pointer-events='none'/><text x='${cx}' y='${lbY}' text-anchor='middle' font-size='13' font-weight='800' fill='#1D4ED8' stroke='white' stroke-width='3' paint-order='stroke'>${d.n}</text><circle cx='${cx}' cy='${cy}' r='18' fill='transparent' style='cursor:pointer' onclick="showDayTrainingModal('${bid}','${d.k}')"/>`;
   }).join('');
   const el=document.getElementById('dash-line-chart');
