@@ -729,6 +729,10 @@
     <div class="bottom-nav-icon">📚</div>
     <div class="bottom-nav-label">การสอน</div>
   </div>
+  <div class="bottom-nav-item" id="bnav-manual" onclick="showPage('manual');updateBottomNav('manual')">
+    <div class="bottom-nav-icon">📖</div>
+    <div class="bottom-nav-label">คู่มือ</div>
+  </div>
   <div class="bottom-nav-item" id="bnav-logout" onclick="logout()">
     <div class="bottom-nav-icon">↩</div>
     <div class="bottom-nav-label">ออกจากระบบ</div>
@@ -2677,6 +2681,7 @@ function buildBranchNav() {
     <div class="nav-item" id="nav-employees" onclick="showPage('employees')"><span class="nav-icon">◼</span> รายชื่อพนักงาน</div>
     <div class="nav-section-label" style="margin-top:8px">การสอนงาน</div>
     <div class="nav-item" id="nav-trainings" onclick="showPage('trainings')"><span class="nav-icon">◼</span> บันทึก &amp; ประเมินผล</div>
+    <div class="nav-item" id="nav-manual" onclick="showPage('manual')"><span class="nav-icon">◼</span> คู่มือการสอนงาน</div>
     <div class="nav-section-label" style="margin-top:8px">รายงาน</div>
     <div class="nav-item" id="nav-reports" onclick="showPage('reports')"><span class="nav-icon">◼</span> ออกรายงาน</div>`;
 }
@@ -2703,7 +2708,7 @@ function showPage(page) {
   if (navEl) navEl.classList.add('active');
   const pages = {
     'dashboard': renderDashboard, 'employees': renderEmployees,
-    'trainings': renderTrainings, 'reports': renderReports,
+    'trainings': renderTrainings, 'manual': renderManual, 'reports': renderReports,
     'admin-dashboard': renderAdminDashboard, 'admin-branches': renderAdminBranches,
     'admin-employees': renderAdminEmployees,
     'admin-trainings': renderAdminTrainings, 'admin-evaluations': renderAdminEvaluations,
@@ -2723,6 +2728,7 @@ function updateBottomNav(page) {
     'employees': 'bnav-employees',
     'trainings': 'bnav-trainings',
     'evaluations': 'bnav-trainings',
+    'manual': 'bnav-manual',
     'reports': null,
   };
   document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.remove('active'));
@@ -3864,6 +3870,26 @@ function openEditTraining(id) {
     closeModal(); showPage('trainings'); notify('แก้ไขบันทึกการสอนงานสำเร็จ');
   }, 'บันทึก');
   setTimeout(()=>{ renderEmpTags(); document.addEventListener('click', closeEmpDropdownOutside); },100);
+}
+
+// ==================== MANUAL ====================
+function renderManual() {
+  return `
+  <div class="page-header">
+    <div><div class="page-title">คู่มือการสอนงาน</div><div class="page-sub">e-Book คู่มือมาตรฐานการสอนงาน · พลิกอ่านได้เหมือนหนังสือจริง</div></div>
+    <a class="btn btn-outline" href="https://heyzine.com/flip-book/b958610e1d.html" target="_blank" rel="noopener">เปิดเต็มหน้าจอ ↗</a>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="position:relative;width:100%;padding-top:62%;background:#000;border-radius:var(--radius);overflow:hidden">
+      <iframe
+        src="https://heyzine.com/flip-book/b958610e1d.html"
+        style="position:absolute;inset:0;width:100%;height:100%;border:0"
+        allowfullscreen
+        scrolling="no"
+        loading="lazy"
+        title="คู่มือการสอนงาน"></iframe>
+    </div>
+  </div>`;
 }
 
 // ==================== EVALUATIONS (merged into renderTrainings) ====================
