@@ -729,10 +729,6 @@
     <div class="bottom-nav-icon">📚</div>
     <div class="bottom-nav-label">การสอน</div>
   </div>
-  <div class="bottom-nav-item" id="bnav-evaluations" onclick="showPage('evaluations');updateBottomNav('evaluations')">
-    <div class="bottom-nav-icon">📋</div>
-    <div class="bottom-nav-label">ประเมินผล</div>
-  </div>
   <div class="bottom-nav-item" id="bnav-logout" onclick="logout()">
     <div class="bottom-nav-icon">↩</div>
     <div class="bottom-nav-label">ออกจากระบบ</div>
@@ -2680,8 +2676,7 @@ function buildBranchNav() {
     <div class="nav-item" id="nav-dashboard" onclick="showPage('dashboard')"><span class="nav-icon">◼</span> แดชบอร์ด</div>
     <div class="nav-item" id="nav-employees" onclick="showPage('employees')"><span class="nav-icon">◼</span> รายชื่อพนักงาน</div>
     <div class="nav-section-label" style="margin-top:8px">การสอนงาน</div>
-    <div class="nav-item" id="nav-trainings" onclick="showPage('trainings')"><span class="nav-icon">◼</span> บันทึกการสอนงาน</div>
-    <div class="nav-item" id="nav-evaluations" onclick="showPage('evaluations')"><span class="nav-icon">◼</span> การประเมินผล</div>
+    <div class="nav-item" id="nav-trainings" onclick="showPage('trainings')"><span class="nav-icon">◼</span> บันทึก &amp; ประเมินผล</div>
     <div class="nav-section-label" style="margin-top:8px">รายงาน</div>
     <div class="nav-item" id="nav-reports" onclick="showPage('reports')"><span class="nav-icon">◼</span> ออกรายงาน</div>`;
 }
@@ -2700,6 +2695,7 @@ function buildAdminNav() {
 }
 
 function showPage(page) {
+  if (page === 'evaluations') page = 'trainings';
   currentPage = page;
   closeSidebar();
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -2707,7 +2703,7 @@ function showPage(page) {
   if (navEl) navEl.classList.add('active');
   const pages = {
     'dashboard': renderDashboard, 'employees': renderEmployees,
-    'trainings': renderTrainings, 'evaluations': renderEvaluations, 'reports': renderReports,
+    'trainings': renderTrainings, 'reports': renderReports,
     'admin-dashboard': renderAdminDashboard, 'admin-branches': renderAdminBranches,
     'admin-employees': renderAdminEmployees,
     'admin-trainings': renderAdminTrainings, 'admin-evaluations': renderAdminEvaluations,
@@ -2726,7 +2722,7 @@ function updateBottomNav(page) {
     'dashboard': 'bnav-dashboard',
     'employees': 'bnav-employees',
     'trainings': 'bnav-trainings',
-    'evaluations': 'bnav-evaluations',
+    'evaluations': 'bnav-trainings',
     'reports': null,
   };
   document.querySelectorAll('.bottom-nav-item').forEach(el => el.classList.remove('active'));
@@ -3428,23 +3424,46 @@ function openEditEmployee(id) {
 }
 
 // ==================== TRAININGS ====================
+let _trainFilter = 'all';
+function setTrainFilter(f) { _trainFilter = f; document.getElementById('main-content').innerHTML = renderTrainings(); }
+
 function renderTrainings() {
   const bid = getBranchId(); const trains = getBranchTrainings(bid);
+  const pending = trains.filter(t=>!t.eval && !isEvalDeadlinePassed(t.date));
+  const done = trains.filter(t=>t.eval);
+  const expired = trains.filter(t=>!t.eval && isEvalDeadlinePassed(t.date));
+  const filter = _trainFilter;
+  let rows = trains;
+  if (filter === 'pending') rows = pending;
+  else if (filter === 'done') rows = done;
+  else if (filter === 'expired') rows = expired;
+  const tabBtn = (key, label, count) => `<button onclick="setTrainFilter('${key}')" class="train-tab ${filter===key?'active':''}" style="border:none;background:${filter===key?'var(--text)':'transparent'};color:${filter===key?'#fff':'var(--text2)'};padding:8px 16px;border-radius:999px;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px">${label}<span style="font-size:11px;opacity:.85;background:${filter===key?'rgba(255,255,255,.18)':'var(--surface3)'};padding:1px 7px;border-radius:999px;font-weight:700">${count}</span></button>`;
   return `
-
   <div class="page-header">
-    <div><div class="page-title">บันทึกการสอนงาน</div><div class="page-sub">ประวัติการสอนงานทั้งหมดของสาขา</div></div>
+    <div><div class="page-title">บันทึกการสอน &amp; ประเมินผล</div><div class="page-sub">ประวัติการสอนงานและสถานะการประเมินของสาขา</div></div>
     <button class="btn btn-navy" onclick="openAddTraining()">+ บันทึกการสอนงาน</button>
   </div>
+  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat-card"><div class="stat-icon-wrap stat-icon-yellow">⏳</div><div class="stat-info"><div class="stat-value">${pending.length}</div><div class="stat-label">รอการประเมิน</div></div></div>
+    <div class="stat-card"><div class="stat-icon-wrap stat-icon-green">✓</div><div class="stat-info"><div class="stat-value">${done.length}</div><div class="stat-label">ประเมินแล้ว</div></div></div>
+    <div class="stat-card"><div class="stat-icon-wrap stat-icon-red">!</div><div class="stat-info"><div class="stat-value">${expired.length}</div><div class="stat-label">หมดระยะเวลา</div></div></div>
+  </div>
   <div class="card">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+      ${tabBtn('all','ทั้งหมด',trains.length)}
+      ${tabBtn('pending','รอประเมิน',pending.length)}
+      ${tabBtn('done','ประเมินแล้ว',done.length)}
+      ${tabBtn('expired','หมดเวลา',expired.length)}
+    </div>
     <div class="table-wrap"><table>
-      <thead><tr><th>วันที่ / เวลา</th><th>Module หลัก</th><th>หัวข้อย่อย</th><th>พนักงาน</th><th>ผู้สอน</th><th>สถานะ</th><th>รายละเอียด</th></tr></thead>
-      <tbody>${trains.length===0?'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">ยังไม่มีบันทึกการสอนงาน</td></tr>':trains.map(t=>{
+      <thead><tr><th>วันที่ / เวลา</th><th>Module หลัก</th><th>หัวข้อย่อย</th><th>พนักงาน</th><th>ผู้สอน</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+      <tbody>${rows.length===0?'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">ไม่มีรายการในหมวดนี้</td></tr>':rows.map(t=>{
         const badge = t.eval
           ? `<span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span>`
           : isEvalDeadlinePassed(t.date) ? '<span class="badge badge-gray">หมดเวลา</span>' : '<span class="badge badge-yellow">รอประเมิน</span>';
         const within7 = !isEvalDeadlinePassed(t.date);
         const canEdit = within7 && !t.eval;
+        const canEval = !t.eval && within7;
         return `<tr>
           <td style="font-size:12.5px;white-space:nowrap">${fmtDateTime(t.date)}</td>
           <td style="font-weight:700;color:var(--primary)">${MODULES[t.moduleId]?.name||t.moduleId}</td>
@@ -3453,7 +3472,8 @@ function renderTrainings() {
           <td style="font-size:12.5px">${t.trainerName}</td>
           <td>${badge}</td>
           <td style="white-space:nowrap">
-            <button class="btn btn-sm btn-outline" onclick="viewTraining('${t.id}')">ดู</button>
+            ${canEval?`<button class="btn btn-sm btn-accent" onclick="openEvalModal('${t.id}')">ประเมิน</button>`:''}
+            <button class="btn btn-sm btn-outline" style="margin-left:4px" onclick="viewTraining('${t.id}')">ดู</button>
             ${canEdit?`<button class="btn btn-sm btn-outline" style="margin-left:4px" onclick="openEditTraining('${t.id}')">แก้ไข</button><button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="deleteTraining('${t.id}')">ลบ</button>`:''}
           </td>
         </tr>`;}).join('')}
@@ -3846,62 +3866,7 @@ function openEditTraining(id) {
   setTimeout(()=>{ renderEmpTags(); document.addEventListener('click', closeEmpDropdownOutside); },100);
 }
 
-// ==================== EVALUATIONS ====================
-function renderEvaluations() {
-  const bid = getBranchId(); const trains = getBranchTrainings(bid);
-  const pending = trains.filter(t=>!t.eval && !isEvalDeadlinePassed(t.date));
-  const done = trains.filter(t=>t.eval);
-  const expired = trains.filter(t=>!t.eval && isEvalDeadlinePassed(t.date));
-  return `
-
-  <div class="page-header"><div><div class="page-title">การประเมินผล</div><div class="page-sub">บันทึกและติดตามผลการประเมินการสอนงาน</div></div></div>
-  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
-    <div class="stat-card"><div class="stat-icon-wrap stat-icon-yellow">⏳</div><div class="stat-info"><div class="stat-value stat-value-yellow">${pending.length}</div><div class="stat-label">รอการประเมิน</div></div></div>
-    <div class="stat-card"><div class="stat-icon-wrap stat-icon-green">✓</div><div class="stat-info"><div class="stat-value stat-value-green">${done.length}</div><div class="stat-label">ประเมินแล้ว</div></div></div>
-    <div class="stat-card"><div class="stat-icon-wrap stat-icon-red">!</div><div class="stat-info"><div class="stat-value stat-value-red">${expired.length}</div><div class="stat-label">หมดระยะเวลา</div></div></div>
-  </div>
-  ${pending.length>0?`<div class="card" style="margin-bottom:16px">
-    <div class="card-header"><span class="card-title">รายการรอประเมิน</span></div>
-    <div class="table-wrap"><table>
-      <thead><tr><th>วันที่สอน</th><th>Module</th><th>พนักงาน</th><th>เหลือเวลา</th><th>หัวข้อสะสม</th><th>ดำเนินการ</th></tr></thead>
-      <tbody>${pending.map(t=>{
-        const dl = new Date(t.date); dl.setDate(dl.getDate()+7);
-        const days = Math.ceil((dl-new Date())/(1000*60*60*24));
-        const prog = getSubtopicProgress(t);
-        const complete = prog.done === prog.total;
-        const empNames = (t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`${e.name}<div style="color:var(--text3);font-size:11px">${e.position} · ${calcTenureShort(e.startDate)}</div>`:null;}).filter(Boolean).join('') || '—';
-        return `<tr>
-          <td style="font-size:12.5px">${fmtDateTime(t.date)}</td>
-          <td style="font-weight:700">${MODULES[t.moduleId]?.name}</td>
-          <td style="font-size:12px">${empNames}</td>
-          <td><span class="badge ${days<=2?'badge-red':'badge-yellow'}">${days} วัน</span></td>
-          <td>
-            ${complete?'<span class="badge badge-green">ครบ ✓ สอบได้</span>':`<span class="badge badge-yellow">${prog.done}/${prog.total} หัวข้อ</span>`}
-            <button class="btn btn-sm btn-outline" style="margin-left:4px" onclick="viewTrainingSubtopics('${t.id}')">ดู</button>
-          </td>
-          <td><button class="btn btn-sm btn-navy" onclick="openEvalModal('${t.id}')">ประเมิน</button></td>
-        </tr>`;}).join('')}
-      </tbody>
-    </table></div>
-  </div>`:''}
-  <div class="card">
-    <div class="card-header"><span class="card-title">ประวัติการประเมิน</span></div>
-    ${done.length===0?'<p class="text-muted">ยังไม่มีประวัติการประเมิน</p>':`<div class="table-wrap"><table>
-      <thead><tr><th>วันที่สอน</th><th>Module</th><th>พนักงาน</th><th>หัวข้อย่อย</th><th>วิธีประเมิน</th><th>ผล</th><th>วันที่ประเมิน</th><th>หมายเหตุ</th></tr></thead>
-      <tbody>${done.map(t=>`<tr>
-        <td style="font-size:12.5px">${fmtDateTime(t.date)}</td>
-        <td style="font-weight:700">${MODULES[t.moduleId]?.name}</td>
-        <td style="font-size:12px">${(t.traineeIds||[]).map(id=>{const e=getEmployee(id);return e?`${e.name}<div style="color:var(--text3);font-size:11px">${e.position} · ${calcTenureShort(e.startDate)}</div>`:null;}).filter(Boolean).join('')||'—'}</td>
-        <td><span class="badge badge-navy" style="font-size:11px">${t.subtopics?.length||0}/${MODULES[t.moduleId]?.subtopics?.length||'?'}</span> <button class="btn btn-sm btn-outline" onclick="viewTrainingSubtopics('${t.id}')">ดู</button></td>
-        <td style="font-size:12.5px">${t.eval.method}</td>
-        <td><span class="badge ${getEvalResultBadge(t.eval.result)}">${getEvalResultLabel(t.eval.result)}</span></td>
-        <td>${fmtDateTime(t.eval.evalDate)}</td>
-        <td style="font-size:12px;color:var(--text2)">${t.eval.note||'—'}</td>
-      </tr>`).join('')}
-      </tbody>
-    </table></div>`}
-  </div>`;
-}
+// ==================== EVALUATIONS (merged into renderTrainings) ====================
 
 function openEvalModal(trainingId) {
   const t = DB.trainings.find(t=>t.id===trainingId); if(!t) return;
@@ -3940,7 +3905,7 @@ function openEvalModal(trainingId) {
     if(!selectedEvalResult){notify('กรุณาเลือกผลการประเมิน','error');return;}
     t.eval = {method:selectedEvalMethod,result:selectedEvalResult,evalDate:new Date().toISOString(),note:document.getElementById('eval-note').value};
     gsSave('trainings', t.id, t);
-    closeModal(); showPage('evaluations'); notify('บันทึกผลการประเมินสำเร็จ');
+    closeModal(); showPage('trainings'); notify('บันทึกผลการประเมินสำเร็จ');
   }, 'บันทึกผล');
 }
 
