@@ -4805,10 +4805,20 @@ const GS_URL = 'https://script.google.com/macros/s/AKfycbzv_7Ez3hKNVpyLoxDMHr3Eg
 const SB_URL = 'https://cyjfgperenakjeazsfgf.supabase.co';
 const SB_KEY = 'sb_publishable_xAtQvH3Bdaqt7PVJGbkxWw_KVhfBszo';
 let SB = null;
+/* ล็อกอินแบบไม่ระบุตัวตน — ต้องมีก่อนล็อก policy ของ Supabase
+   ตารางฝั่งนี้เก็บรายชื่อพนักงานเกือบสองพันคนพร้อมเลขบัตรประชาชน
+   ตอนนี้ใครถือคีย์ที่อยู่ในหน้าเว็บสาธารณะก็ดึงออกไปได้ทั้งก้อน
+   ล้มเหลวไม่ปิดระบบ — ตอน policy ยังเปิดอยู่ก็ทำงานได้ปกติ */
+let SB_AUTH = null;
+function sbAuthReady() { _initSb(); return SB_AUTH || Promise.resolve(false); }
+
 function _initSb() {
   if (SB) return SB;
   if (window.supabase && window.supabase.createClient) {
     SB = window.supabase.createClient(SB_URL, SB_KEY);
+    SB_AUTH = SB.auth.signInAnonymously()
+      .then(function (r) { return !(r && r.error); })
+      .catch(function () { return false; });
   }
   return SB;
 }
@@ -4896,6 +4906,7 @@ async function _sbAll(sb, table, tweak, max) {
   return { data: out, error: null };
 }
 async function sbLoadAll() {
+  await sbAuthReady();          // รอล็อกอิน Supabase ก่อนแตะตาราง
   const sb = _initSb(); if (!sb) throw new Error('Supabase client not ready');
   const [emps, trs, qrs, cqs, chs, qms, bos, cat, cse, clg] = await Promise.all([
     _sbAll(sb, 'employees'),
@@ -4965,6 +4976,7 @@ async function sbLoadAll() {
   };
 }
 async function sbSaveOne(coll, id, rec) {
+  await sbAuthReady();          // รอล็อกอิน Supabase ก่อนแตะตาราง
   const sb = _initSb(); if (!sb) return;
   const table = _SB_TABLE[coll]; if (!table) return;
   if (coll === 'quizMeta') {
@@ -4974,6 +4986,7 @@ async function sbSaveOne(coll, id, rec) {
   return sb.from(table).upsert(row);
 }
 async function sbDelOne(coll, id) {
+  await sbAuthReady();          // รอล็อกอิน Supabase ก่อนแตะตาราง
   const sb = _initSb(); if (!sb) return;
   const table = _SB_TABLE[coll]; if (!table) return;
   const res = await sb.from(table).delete().eq('id', id);
@@ -4982,11 +4995,13 @@ async function sbDelOne(coll, id) {
 }
 // ลบทุกแถวของ collection (ใช้กับ "ลบทั้งหมด" — เร็วกว่ายิงลบทีละแถวหลักร้อยครั้ง)
 async function sbDelAll(coll) {
+  await sbAuthReady();          // รอล็อกอิน Supabase ก่อนแตะตาราง
   const sb = _initSb(); if (!sb) return;
   const table = _SB_TABLE[coll]; if (!table) return;
   return sb.from(table).delete().neq('id', '__never_matches__');
 }
 async function sbSaveMany(coll, records) {
+  await sbAuthReady();          // รอล็อกอิน Supabase ก่อนแตะตาราง
   const sb = _initSb(); if (!sb) return;
   const table = _SB_TABLE[coll]; if (!table || !records || !records.length) return;
   const rows = records.map(r => _toSb(coll, r));
@@ -5038,6 +5053,7 @@ function _applyTestModeFromServer(on) {
 
 // Push current in-memory DB up to Supabase (used as one-shot migration from Sheets)
 async function sbMigrateFromCurrent() {
+  await sbAuthReady();          // รอล็อกอิน Supabase ก่อนแตะตาราง
   const allEmps = Object.values(DB.employees).flat();
   await sbSaveMany('employees', allEmps);
   await sbSaveMany('trainings', DB.trainings || []);
