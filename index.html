@@ -4816,9 +4816,11 @@ function _initSb() {
   if (SB) return SB;
   if (window.supabase && window.supabase.createClient) {
     SB = window.supabase.createClient(SB_URL, SB_KEY);
-    SB_AUTH = SB.auth.signInAnonymously()
-      .then(function (r) { return !(r && r.error); })
-      .catch(function () { return false; });
+    try {
+      SB_AUTH = SB.auth.signInAnonymously()
+        .then(function (r) { return !(r && r.error); })
+        .catch(function () { return false; });
+    } catch (e) { SB_AUTH = Promise.resolve(false); }
   }
   return SB;
 }
